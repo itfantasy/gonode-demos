@@ -60,7 +60,7 @@ func testTheGnBuffers() {
 	gnbuffer.PushLong(0xAA5555AA)
 	gnbuffer.PushString("威猛的王大侠,     犀利的东哥")
 
-	gnparser := gnbuffers.BuildParser(gnbuffer.Flush(), 0)
+	gnparser := gnbuffers.BuildParser(gnbuffer.Bytes(), 0)
 	if val, err := gnparser.Int(); err == nil {
 		fmt.Println(val)
 	}
