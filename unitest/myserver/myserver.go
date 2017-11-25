@@ -5,6 +5,7 @@ import (
 
 	"github.com/itfantasy/gonode"
 	"github.com/itfantasy/gonode/behaviors/gen_server"
+	"github.com/itfantasy/gonode/gnbuffers"
 	"github.com/itfantasy/gonode/utils/ini"
 	"github.com/itfantasy/gonode/utils/io"
 	//	"github.com/itfantasy/gonode/utils/timer"
@@ -40,10 +41,34 @@ func (this *MyServer) Update() {
 
 }
 func (this *MyServer) OnConn(id string) {
-
+	fmt.Println("[" + id + "] has connected to this node!")
 }
 func (this *MyServer) OnMsg(id string, msg []byte) {
+	/*
+		buffer := gnbuffers.BuildBuffer(1024)
+		buffer.PushInt(666)
+		buffer.PushString("万能的刚哥!!")
+		fmt.Println(buffer.Bytes())
+	*/
+	fmt.Println("[" + id + "]'s msg has been received!")
+	//fmt.Println(len(msg))
 
+	parser := gnbuffers.BuildParser(msg, 0)
+	if val, err := parser.Int(); err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(val)
+	}
+	if val, err := parser.String(); err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(val)
+	}
+
+	buffer := gnbuffers.BuildBuffer(4096)
+	buffer.PushInt(999)
+	buffer.PushString("犀利的王大侠!!!")
+	gonode.Node().NetWorker().Send(id, buffer.Bytes())
 }
 func (this *MyServer) OnClose(id string) {
 
@@ -55,7 +80,7 @@ func (this *MyServer) OnReload(tag string) error {
 	return nil
 }
 func (this *MyServer) CreateConnId() string {
-	return ""
+	return "cnt"
 }
 func main() {
 	myserver := new(MyServer)
