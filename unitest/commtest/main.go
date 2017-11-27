@@ -12,7 +12,8 @@ import (
 func main() {
 	//testTheInterfaceWithNil()
 	//testTheByteBuffer()
-	testTheGnBuffers()
+	//testTheGnBuffers()
+	testTheGnBuffersObject()
 }
 
 type testAStructContainsAnInterface struct {
@@ -55,7 +56,10 @@ func testTheByteBuffer() {
 }
 
 func testTheGnBuffers() {
-	gnbuffer := gnbuffers.BuildBuffer(1024)
+	gnbuffer, err := gnbuffers.BuildBuffer(1024)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
 	gnbuffer.PushInt(32)
 	gnbuffer.PushLong(0xAA5555AA)
 	gnbuffer.PushString("威猛的王大侠,     犀利的东哥")
@@ -69,5 +73,41 @@ func testTheGnBuffers() {
 	}
 	if val, err := gnparser.String(); err == nil {
 		fmt.Println(val)
+	}
+}
+
+func testTheGnBuffersObject() {
+	gnbuffer, err := gnbuffers.BuildBuffer(1024)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	if err := gnbuffer.PushObject(float32(32)); err != nil {
+		fmt.Println(err.Error())
+	}
+
+	gnbuffer.PushObject(int64(0xAA5555AA))
+	gnbuffer.PushObject("威猛的王大侠,     犀利的东哥")
+
+	gnparser := gnbuffers.BuildParser(gnbuffer.Bytes(), 0)
+	if val, err := gnparser.Object(); err == nil {
+		fmt.Println("A")
+		fmt.Println(val)
+	} else {
+		fmt.Println("AE")
+		fmt.Println(err.Error())
+	}
+	if val, err := gnparser.Object(); err == nil {
+		fmt.Println("B")
+		fmt.Println(val)
+	} else {
+		fmt.Println("BE")
+		fmt.Println(err.Error())
+	}
+	if val, err := gnparser.Object(); err == nil {
+		fmt.Println("C")
+		fmt.Println(val)
+	} else {
+		fmt.Println("CE")
+		fmt.Println(err.Error())
 	}
 }
