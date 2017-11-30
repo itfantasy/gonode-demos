@@ -4,16 +4,26 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"reflect"
 
 	"github.com/itfantasy/gonode/components/logger"
 	"github.com/itfantasy/gonode/gnbuffers"
+	"github.com/itfantasy/gonode/utils/stl"
 )
 
 func main() {
 	//testTheInterfaceWithNil()
 	//testTheByteBuffer()
 	//testTheGnBuffers()
-	testTheGnBuffersObject()
+	//testTheGnBuffersObject()
+	//testTheReflectPackage()
+	testTheGnBuffersHashAndArray()
+}
+
+func testTheReflectPackage() {
+
+	var list []int
+	fmt.Println(reflect.TypeOf(list))
 }
 
 type testAStructContainsAnInterface struct {
@@ -73,6 +83,30 @@ func testTheGnBuffers() {
 	}
 	if val, err := gnparser.String(); err == nil {
 		fmt.Println(val)
+	}
+}
+
+func testTheGnBuffersHashAndArray() {
+	array := make([]int32, 0, 4)
+	array = append(array, 10)
+	array = append(array, 15)
+	array = append(array, 20)
+	array = append(array, 25)
+
+	hash := stl.NewHashTable()
+	hash.Set(14, 114)
+	hash.Set(19, 119)
+
+	buf, _ := gnbuffers.BuildBuffer(1024)
+	buf.PushObject(array)
+	buf.PushObject(hash.KeyValuePairs())
+
+	parser := gnbuffers.BuildParser(buf.Bytes(), 0)
+	if obj, err := parser.Object(); err == nil {
+		fmt.Println(obj)
+	}
+	if obj, err := parser.Object(); err == nil {
+		fmt.Println(obj)
 	}
 }
 
