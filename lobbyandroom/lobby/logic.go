@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/itfantasy/gonode"
 	"github.com/itfantasy/gonode/gnbuffers"
+	"github.com/itfantasy/gonode/utils/stl"
 	"github.com/itfantasy/gonode_demo/lobbyandroom/opcode"
 	"github.com/itfantasy/gonode_demo/lobbyandroom/opcode/errorcode"
 	"github.com/itfantasy/gonode_demo/lobbyandroom/opcode/paramcode"
@@ -22,6 +23,10 @@ func HandleMsg(id string, msg []byte) {
 			handleJoinRandomGame(id, opCode, parser)
 			break
 		case opcode.JoinGame:
+			handleJoinGame(id, opCode, parser)
+			break
+		case opcode.RaiseEvent:
+			handleRaiseEvent(id, opCode, parser)
 			break
 		}
 	}
@@ -36,8 +41,8 @@ func handleAuthenticate(id string, opCode byte, parser *gnbuffers.GnParser) {
 		handleErrors(id, opCode, err)
 	} else {
 		buf.PushByte(0)      // resp
-		buf.PushByte(opCode) // opcode
 		buf.PushShort(0)     // retcode
+		buf.PushByte(opCode) // opcode
 		gonode.Send(id, buf.Bytes())
 	}
 }
@@ -47,8 +52,8 @@ func handleJoinRandomGame(id string, opCode byte, parser *gnbuffers.GnParser) {
 		handleErrors(id, opCode, err)
 	} else {
 		buf.PushByte(0)
-		buf.PushByte(opCode)
 		buf.PushShort(errorcode.Ok)
+		buf.PushByte(opCode)
 		buf.PushByte(paramcode.GameId)
 		buf.PushObject("game1123")
 		buf.PushByte(paramcode.Address)
@@ -58,9 +63,48 @@ func handleJoinRandomGame(id string, opCode byte, parser *gnbuffers.GnParser) {
 }
 
 func handleJoinGame(id string, opCode byte, parser *gnbuffers.GnParser) {
-	if buf, err := gnbuffers.BuildBuffer(256); err != nil {
+	if buf, err := gnbuffers.BuildBuffer(1024); err != nil {
 		handleErrors(id, opCode, err)
 	} else {
+		buf.PushByte(0)
+		buf.PushShort(errorcode.Ok)
+		buf.PushByte(opCode)
+		buf.PushByte(paramcode.ActorNr)
+		buf.PushObject(0)
+		buf.PushByte(paramcode.ActorProperties)
+		hash := stl.NewHashTable()
+		buf.PushObject(hash.KeyValuePairs())
+		buf.PushByte(paramcode.GameProperties)
+		hash2 := stl.NewHashTable()
+		buf.PushObject(hash2.KeyValuePairs())
+		buf.PushByte(paramcode.Actors)
+		intArray := make([]int32, 0, 0)
+		buf.PushObject(intArray)
+		gonode.Send(id, buf.Bytes())
+	}
+}
 
+func handleRaiseEvent(id string, opCode byte, parser *gnbuffers.GnParser) {
+	// send self resp
+	if buf, err := gnbuffers.BuildBuffer(1024); err != nil {
+		handleErrors(id, opCode, err)
+	} else {
+		buf.PushByte(0)
+		buf.PushShort(errorcode.Ok)
+		buf.PushByte(opCode)
+		gonode.Send(id, buf.Bytes())
+	}
+	// pub the event to others
+	if evn, err := gnbuffers.BuildBuffer(1024); err != nil {
+		handleErrors(id, opCode, err)
+	} else {
+		evn.PushByte(1)
+		evn.PushBytes(parser.Bytes())
+		ids := gonode.Node().NetWorker().GetAllConnIds()
+		for _, item := range ids {
+			//if item != id {
+			gonode.Send(item, evn.Bytes())
+			//}
+		}
 	}
 }
