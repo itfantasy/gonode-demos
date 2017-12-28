@@ -32,6 +32,9 @@ func HandleMsg(id string, msg []byte) {
 		case opcode.RaiseEvent:
 			handleRaiseEvent(id, opCode, parser)
 			break
+		default:
+			gonode.Send(id, msg)
+			break
 		}
 	}
 }

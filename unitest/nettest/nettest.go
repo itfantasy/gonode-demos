@@ -15,13 +15,17 @@ func main() {
 	testKcp()
 }
 
+func testTcp() {
+
+}
+
 func testKcp() {
 	testKcpServer()
 	//testKcpClient()
 }
 
 func testKcpServer() {
-	listen, err := kcp.Listen("0.0.0.0:10086")
+	listen, err := kcp.Listen("192.168.10.94:10086")
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -42,7 +46,7 @@ func handleConnS(conn net.Conn) {
 	for {
 		fmt.Println("recv -----> ")
 		datas := bytes.NewBuffer(nil)
-		var buf [512]byte
+		var buf [4096]byte
 
 		n, err := conn.Read(buf[0:])
 		fmt.Println(conn.RemoteAddr().String())
