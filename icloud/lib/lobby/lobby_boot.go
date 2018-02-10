@@ -45,7 +45,7 @@ func (this *LobbyBoot) Update() {
 
 }
 func (this *LobbyBoot) OnConn(id string) {
-
+	fmt.Println("new conn !! " + id)
 }
 func (this *LobbyBoot) OnMsg(id string, msg []byte) {
 	if strings.Contains(id, "room") {
@@ -55,7 +55,7 @@ func (this *LobbyBoot) OnMsg(id string, msg []byte) {
 	}
 }
 func (this *LobbyBoot) OnClose(id string) {
-
+	fmt.Println("conn closed !! " + id)
 }
 func (this *LobbyBoot) OnShell(id string, msg string) {
 
