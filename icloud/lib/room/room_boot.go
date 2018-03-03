@@ -2,6 +2,9 @@ package room
 
 import (
 	"fmt"
+	"math/rand"
+	"strconv"
+	"strings"
 	//"strings"
 
 	"github.com/itfantasy/gonode"
@@ -48,7 +51,11 @@ func (this *RoomBoot) OnConn(id string) {
 
 }
 func (this *RoomBoot) OnMsg(id string, msg []byte) {
-
+	if strings.Contains(id, "lobby") {
+		// native logic for lobbyserver
+	} else {
+		this.server.OnMsg(id, msg)
+	}
 }
 func (this *RoomBoot) OnClose(id string) {
 
@@ -60,7 +67,7 @@ func (this *RoomBoot) OnReload(tag string) error {
 	return nil
 }
 func (this *RoomBoot) CreateConnId() string {
-	return ""
+	return "cnt" + strconv.Itoa(rand.Intn(100000))
 }
 func (this *RoomBoot) Initialize(server RoomServer) {
 	this.server = server
