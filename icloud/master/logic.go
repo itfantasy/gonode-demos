@@ -22,6 +22,12 @@ func HandleMsg(id string, msg []byte) {
 		case opcode.Authenticate:
 			handleAuthenticate(id, opCode, parser)
 			break
+		case opcode.CreateGame:
+			handleCreateGame(id, opCode, parser)
+			break
+		case opcode.JoinGame:
+			handleJoinGame(id, opCode, parser)
+			break
 		case opcode.JoinRandomGame:
 			handleJoinRandomGame(id, opCode, parser)
 			break
@@ -48,6 +54,38 @@ func handleAuthenticate(id string, opCode byte, parser *gnbuffers.GnParser) {
 	}
 }
 
+func handleCreateGame(id string, opCode byte, parser *gnbuffers.GnParser) {
+	if buf, err := gnbuffers.BuildBuffer(256); err != nil {
+		handleErrors(id, opCode, err)
+		return
+	} else {
+		buf.PushByte(0)
+		buf.PushShort(errorcode.Ok)
+		buf.PushByte(opCode)
+		buf.PushByte(paramcode.GameId)
+		buf.PushObject("game1123")
+		buf.PushByte(paramcode.Address)
+		buf.PushObject("192.168.10.85:5056")
+		gonode.Send(id, buf.Bytes())
+	}
+}
+
+func handleJoinGame(id string, opCode byte, parser *gnbuffers.GnParser) {
+	if buf, err := gnbuffers.BuildBuffer(256); err != nil {
+		handleErrors(id, opCode, err)
+		return
+	} else {
+		buf.PushByte(0)
+		buf.PushShort(errorcode.Ok)
+		buf.PushByte(opCode)
+		buf.PushByte(paramcode.GameId)
+		buf.PushObject("game1123")
+		buf.PushByte(paramcode.Address)
+		buf.PushObject("192.168.10.85:5056")
+		gonode.Send(id, buf.Bytes())
+	}
+}
+
 func handleJoinRandomGame(id string, opCode byte, parser *gnbuffers.GnParser) {
 	if buf, err := gnbuffers.BuildBuffer(256); err != nil {
 		handleErrors(id, opCode, err)
@@ -59,7 +97,7 @@ func handleJoinRandomGame(id string, opCode byte, parser *gnbuffers.GnParser) {
 		buf.PushByte(paramcode.GameId)
 		buf.PushObject("game1123")
 		buf.PushByte(paramcode.Address)
-		buf.PushObject("192.168.10.94:5056")
+		buf.PushObject("192.168.10.85:5056")
 		gonode.Send(id, buf.Bytes())
 	}
 }

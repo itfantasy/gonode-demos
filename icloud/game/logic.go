@@ -9,7 +9,9 @@ import (
 	//	"github.com/itfantasy/gonode/utils/json"
 	"github.com/itfantasy/gonode/utils/stl"
 	"github.com/itfantasy/gonode_demo/icloud/opcode"
+	"github.com/itfantasy/gonode_demo/icloud/opcode/actorparam"
 	"github.com/itfantasy/gonode_demo/icloud/opcode/errorcode"
+	"github.com/itfantasy/gonode_demo/icloud/opcode/evncode"
 	"github.com/itfantasy/gonode_demo/icloud/opcode/paramcode"
 )
 
@@ -22,6 +24,9 @@ func HandleMsg(id string, msg []byte) {
 		switch opCode {
 		case opcode.Authenticate:
 			handleAuthenticate(id, opCode, parser)
+			break
+		case opcode.CreateGame:
+			handleCreateGame(id, opCode, parser)
 			break
 		case opcode.JoinGame:
 			handleJoinGame(id, opCode, parser)
@@ -52,6 +57,32 @@ func handleAuthenticate(id string, opCode byte, parser *gnbuffers.GnParser) {
 	}
 }
 
+func handleCreateGame(id string, opCode byte, parser *gnbuffers.GnParser) {
+	if buf, err := gnbuffers.BuildBuffer(256); err != nil {
+		handleErrors(id, opCode, err)
+		return
+	} else {
+		buf.PushByte(0)
+		buf.PushShort(errorcode.Ok)
+		buf.PushByte(opCode)
+		buf.PushByte(paramcode.ActorNr)
+		buf.PushObject(0)
+		buf.PushByte(paramcode.ActorProperties)
+		hash := stl.NewHashTable()
+		buf.PushObject(hash.KeyValuePairs())
+		buf.PushByte(paramcode.GameProperties)
+		hash2 := stl.NewHashTable()
+		buf.PushObject(hash2.KeyValuePairs())
+		buf.PushByte(paramcode.Actors)
+		intArray := make([]int32, 0, 0)
+		buf.PushObject(intArray)
+		gonode.Send(id, buf.Bytes())
+
+		pubJoinEvent(id, opCode, parser)
+		actorNr += 1
+	}
+}
+
 func handleJoinGame(id string, opCode byte, parser *gnbuffers.GnParser) {
 	if buf, err := gnbuffers.BuildBuffer(1024); err != nil {
 		handleErrors(id, opCode, err)
@@ -72,6 +103,9 @@ func handleJoinGame(id string, opCode byte, parser *gnbuffers.GnParser) {
 		intArray := make([]int32, 0, 0)
 		buf.PushObject(intArray)
 		gonode.Send(id, buf.Bytes())
+
+		pubJoinEvent(id, opCode, parser)
+		actorNr += 1
 	}
 }
 
@@ -115,6 +149,37 @@ func handleRaiseEvent(id string, opCode byte, parser *gnbuffers.GnParser) {
 
 		data := parser.Bytes()
 		evn.PushBytes(data[5:])
+
+		ids := gonode.Node().NetWorker().GetAllConnIds()
+		for _, item := range ids {
+			if item != id {
+				fmt.Println(evn.Bytes())
+				gonode.Send(item, evn.Bytes())
+			}
+		}
+	}
+}
+
+func pubJoinEvent(id string, opCode byte, parser *gnbuffers.GnParser) {
+	if evn, err := gnbuffers.BuildBuffer(1024); err != nil {
+		handleErrors(id, opCode, err)
+		return
+	} else {
+
+		evn.PushByte(1) // event
+		evn.PushByte(evncode.Join)
+
+		hashTable := stl.NewHashTable()
+		hashTable.Set(actorparam.Nickname, "")
+		evn.PushByte(paramcode.ActorProperties)
+		evn.PushObject(hashTable.KeyValuePairs())
+
+		intArray := make([]int32, 0, 10)
+		evn.PushByte(paramcode.Actors)
+		evn.PushObject(intArray)
+
+		evn.PushByte(paramcode.ActorNr)
+		evn.PushObject(int32(0))
 
 		ids := gonode.Node().NetWorker().GetAllConnIds()
 		for _, item := range ids {
