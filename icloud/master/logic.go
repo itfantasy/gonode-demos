@@ -92,12 +92,8 @@ func handleJoinRandomGame(id string, opCode byte, parser *gnbuffers.GnParser) {
 		return
 	} else {
 		buf.PushByte(0)
-		buf.PushShort(errorcode.Ok)
+		buf.PushShort(errorcode.NoMatchFound)
 		buf.PushByte(opCode)
-		buf.PushByte(paramcode.GameId)
-		buf.PushObject("game1123")
-		buf.PushByte(paramcode.Address)
-		buf.PushObject("192.168.10.85:5056")
 		gonode.Send(id, buf.Bytes())
 	}
 }

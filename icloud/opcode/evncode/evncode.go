@@ -34,4 +34,11 @@ const (
 	CacheSliceChanged = 250
 
 	EventCacheSlicePurged = 249
+
+	GameList          = 230
+	GameListUpdate    = 229
+	QueueState        = 228
+	AppStats          = 226
+	GameServerOffline = 225
+	LobbyStats        = 224
 )
