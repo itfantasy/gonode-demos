@@ -14,6 +14,7 @@ import (
 	"github.com/itfantasy/gonode_demo/icloud/opcode/evncode"
 	"github.com/itfantasy/gonode_demo/icloud/opcode/gameparam"
 	"github.com/itfantasy/gonode_demo/icloud/opcode/paramcode"
+	"github.com/itfantasy/gonode_demo/icloud/opcode/recvgroup"
 )
 
 func HandleMsg(id string, msg []byte) {
@@ -181,18 +182,34 @@ func handleRaiseEvent(id string, opCode byte, parser *gnbuffers.GnParser) {
 		evn.PushByte(paramcode.Code)
 		evn.PushObject(byte(eventCode))
 
-		//parser.Byte() // ParameterCode.Data
+		parser.Byte() // ReceiverGroup
+		var recvGroup byte = recvgroup.Others
+		if oRecvGroup, err := parser.Object(); err != nil {
+			handleErrors(id, opCode, err)
+			return
+		} else {
+			recvGroup = oRecvGroup.(byte)
+		}
 
-		evn.PushByte(paramcode.Data) // hashtable
-
+		evn.PushByte(paramcode.Data)
 		data := parser.Bytes()
 		evn.PushBytes(data[5:])
 
-		ids := gonode.Node().NetWorker().GetAllConnIds()
-		for _, item := range ids {
-			if item != id {
+		ids := gonode.Node().NetWorker().GetAllConnIds() // 获得同房间的id列表
+
+		if recvGroup == recvgroup.MasterClient {
+			gonode.Send(id, evn.Bytes())
+		} else if recvGroup == recvgroup.All {
+			for _, item := range ids {
 				fmt.Println(evn.Bytes())
 				gonode.Send(item, evn.Bytes())
+			}
+		} else {
+			for _, item := range ids {
+				if item != id {
+					fmt.Println(evn.Bytes())
+					gonode.Send(item, evn.Bytes())
+				}
 			}
 		}
 	}
