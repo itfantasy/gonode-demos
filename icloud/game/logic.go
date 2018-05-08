@@ -10,6 +10,7 @@ import (
 	"github.com/itfantasy/gonode/utils/stl"
 	"github.com/itfantasy/gonode_demo/icloud/opcode"
 	"github.com/itfantasy/gonode_demo/icloud/opcode/actorparam"
+	"github.com/itfantasy/gonode_demo/icloud/opcode/cacheop"
 	"github.com/itfantasy/gonode_demo/icloud/opcode/errorcode"
 	"github.com/itfantasy/gonode_demo/icloud/opcode/evncode"
 	"github.com/itfantasy/gonode_demo/icloud/opcode/gameparam"
@@ -109,7 +110,7 @@ func handleCreateGame(id string, opCode byte, parser *gnbuffers.GnParser) {
 
 		gonode.Send(id, buf.Bytes())
 		pubJoinEvent(id, opCode, parser)
-		//actorNr += 1
+		actorNr += 1
 	}
 }
 
@@ -146,7 +147,7 @@ func handleJoinGame(id string, opCode byte, parser *gnbuffers.GnParser) {
 
 		gonode.Send(id, buf.Bytes())
 		pubJoinEvent(id, opCode, parser)
-		//actorNr += 1
+		actorNr += 1
 	}
 }
 
@@ -182,21 +183,49 @@ func handleRaiseEvent(id string, opCode byte, parser *gnbuffers.GnParser) {
 		evn.PushByte(paramcode.Code)
 		evn.PushObject(byte(eventCode))
 
-		parser.Byte() // ReceiverGroup
 		var recvGroup byte = recvgroup.Others
-		if oRecvGroup, err := parser.Object(); err != nil {
-			handleErrors(id, opCode, err)
-			return
-		} else {
-			recvGroup = oRecvGroup.(byte)
+		var cacheOp byte = cacheop.DoNotCache
+
+		for {
+			paramCode, err := parser.Byte()
+			if err != nil {
+				handleErrors(id, opCode, err)
+				return
+			}
+			fmt.Print("paramCode:")
+			fmt.Println(paramCode)
+			if paramCode == paramcode.ReceiverGroup { // ReceiverGroup
+				if oRecvGroup, err := parser.Object(); err != nil {
+					handleErrors(id, opCode, err)
+					return
+				} else {
+					recvGroup = oRecvGroup.(byte)
+				}
+				//parser.Byte() // Data
+			} else if paramCode == paramcode.Cache { // the event which will be cached
+				if oCacheOp, err := parser.Object(); err != nil {
+					handleErrors(id, opCode, err)
+					return
+				} else {
+					cacheOp = oCacheOp.(byte)
+				}
+			} else if paramCode == paramcode.Data { // when get the data
+				break
+			}
 		}
 
 		evn.PushByte(paramcode.Data)
 		data := parser.Bytes()
 		evn.PushBytes(data[5:])
 
-		ids := gonode.Node().NetWorker().GetAllConnIds() // 获得同房间的id列表
+		ids := gonode.Node().NetWorker().GetAllConnIds() // get the ids in the same room
 
+		// handle the cacheOp
+		if cacheOp == cacheop.AddToRoomCache {
+
+		}
+
+		// handle the recvGroup
 		if recvGroup == recvgroup.MasterClient {
 			gonode.Send(id, evn.Bytes())
 		} else if recvGroup == recvgroup.All {
@@ -212,7 +241,13 @@ func handleRaiseEvent(id string, opCode byte, parser *gnbuffers.GnParser) {
 				}
 			}
 		}
+
 	}
+}
+
+//HiveGame.PublishEventCache (line 1410)
+func pubEventCache(id string) {
+
 }
 
 func pubJoinEvent(id string, opCode byte, parser *gnbuffers.GnParser) {
