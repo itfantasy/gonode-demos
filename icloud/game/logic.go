@@ -16,6 +16,8 @@ import (
 	"github.com/itfantasy/gonode_demo/icloud/opcode/gameparam"
 	"github.com/itfantasy/gonode_demo/icloud/opcode/paramcode"
 	"github.com/itfantasy/gonode_demo/icloud/opcode/recvgroup"
+
+	"github.com/itfantasy/gonode_demo/icloud/lib/room"
 )
 
 func HandleMsg(id string, msg []byte) {
@@ -46,6 +48,7 @@ func HandleMsg(id string, msg []byte) {
 	}
 }
 
+var roomId int32 = 1
 var actorNr int32 = 1
 
 func handleErrors(id string, opCode byte, err error) {
@@ -218,7 +221,8 @@ func handleRaiseEvent(id string, opCode byte, parser *gnbuffers.GnParser) {
 		data := parser.Bytes()
 		evn.PushBytes(data[5:])
 
-		ids := gonode.Node().NetWorker().GetAllConnIds() // get the ids in the same room
+		// handle the cache events publist
+		pubEventCache(id)
 
 		// handle the cacheOp
 		if cacheOp == cacheop.AddToRoomCache {
@@ -226,6 +230,7 @@ func handleRaiseEvent(id string, opCode byte, parser *gnbuffers.GnParser) {
 		}
 
 		// handle the recvGroup
+		ids := gonode.Node().NetWorker().GetAllConnIds() // get the ids in the same room
 		if recvGroup == recvgroup.MasterClient {
 			gonode.Send(id, evn.Bytes())
 		} else if recvGroup == recvgroup.All {
@@ -245,9 +250,18 @@ func handleRaiseEvent(id string, opCode byte, parser *gnbuffers.GnParser) {
 	}
 }
 
+func evnCache(roomId int32) *room.RoomEventCache {
+	return room.InsRoomEventCacheManager().FetchRoomCache(roomId)
+}
+
 //HiveGame.PublishEventCache (line 1410)
 func pubEventCache(id string) {
-
+	for _, item := range evnCache(roomId).Events() {
+		event := item.(*room.CustomEvent)
+		fmt.Print("pub the cache event:")
+		fmt.Println(event.Code)
+		gonode.Send(id, event.Data)
+	}
 }
 
 func pubJoinEvent(id string, opCode byte, parser *gnbuffers.GnParser) {
@@ -277,5 +291,7 @@ func pubJoinEvent(id string, opCode byte, parser *gnbuffers.GnParser) {
 			fmt.Println(evn.Bytes())
 			gonode.Send(item, evn.Bytes())
 		}
+
+		evnCache(roomId).AddEvent(actorNr, evncode.Join, evn.Bytes())
 	}
 }
