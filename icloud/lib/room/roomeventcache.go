@@ -2,22 +2,23 @@
 package room
 
 import (
-	"strconv"
+	//	"strconv"
 
 	"github.com/itfantasy/gonode/utils/stl"
 )
 
 type CustomEvent struct {
-	actorNr int32
+	ActorNr int32
 	Code    byte
 	Data    []byte
 }
 
 func NewCustomEvent(actor int32, eventCode byte, data []byte) *CustomEvent {
 	event := new(CustomEvent)
-	event.actorNr = actor
+	event.ActorNr = actor
 	event.Code = eventCode
-	event.Data = make([]byte, 0, len(data))
+	lenth := len(data)
+	event.Data = make([]byte, lenth, lenth)
 	copy(event.Data, data)
 	return event
 }
@@ -40,7 +41,7 @@ func (this *RoomEventCache) RemoveEventsByActor(actor int32) int {
 	dirtyList := stl.NewList(10)
 	for _, item := range this.list.Values() {
 		customeEvent := item.(CustomEvent)
-		if customeEvent.actorNr == actor {
+		if customeEvent.ActorNr == actor {
 			dirtyList.Add(customeEvent)
 		}
 	}
@@ -58,6 +59,7 @@ type RoomEventCacheManager struct {
 	_map *stl.Dictionary // roomid=>RoomEventCache
 }
 
+/*
 var _roomEventCacheManager *RoomEventCacheManager
 
 func InsRoomEventCacheManager() *RoomEventCacheManager {
@@ -79,3 +81,4 @@ func (this *RoomEventCacheManager) FetchRoomCache(roomId int32) *RoomEventCache 
 		return cache
 	}
 }
+*/

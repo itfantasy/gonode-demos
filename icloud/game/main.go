@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	//	"fmt"
 
 	//	"github.com/itfantasy/gonode"
 	"github.com/itfantasy/gonode_demo/icloud/lib/room"
@@ -18,7 +18,7 @@ func (this *RoomServer) Update() {
 }
 func (this *RoomServer) OnMsg(id string, msg []byte) {
 	// receive the msg from client
-	fmt.Println(msg)
+	//fmt.Println(msg)
 	HandleMsg(id, msg)
 }
 func (this *RoomServer) OnReload(string) error {
