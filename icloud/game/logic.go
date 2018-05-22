@@ -228,7 +228,6 @@ func handleRaiseEvent(id string, opCode byte, parser *gnbuffers.GnParser) {
 				handleErrors(id, opCode, err)
 				return
 			}
-
 			//fmt.Print("paramCode:")
 			//fmt.Println(paramCode)
 			if paramCode == paramcode.ReceiverGroup { // ReceiverGroup
