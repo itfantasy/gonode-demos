@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	//	"fmt"
 
@@ -199,6 +200,13 @@ func handleRaiseEvent(id string, opCode byte, parser *gnbuffers.GnParser) {
 		handleErrors(id, opCode, err)
 		return
 	} else {
+
+		actor, exist := insRoom().ActorsManager().GetActorByPeerId(id)
+		if !exist {
+			handleErrors(id, opCode, errors.New("cannot find the actor by the peeerid:"+id))
+			return
+		}
+
 		parser.Byte()                 // ParameterCode.Code
 		parser.Byte()                 // gntypes.Byte
 		eventCode, _ := parser.Byte() // eventCode
@@ -207,7 +215,7 @@ func handleRaiseEvent(id string, opCode byte, parser *gnbuffers.GnParser) {
 		evn.PushByte(eventCode)
 
 		evn.PushByte(paramcode.ActorNr)
-		evn.PushObject(actorNr)
+		evn.PushObject(actor.ActorNr)
 		//actorNr += 1
 
 		evn.PushByte(paramcode.Code)
