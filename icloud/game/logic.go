@@ -195,12 +195,10 @@ func handleRaiseEvent(id string, opCode byte, parser *gnbuffers.GnParser) {
 	}
 
 	// pub the event to others
-
 	if evn, err := gnbuffers.BuildBuffer(1024); err != nil {
 		handleErrors(id, opCode, err)
 		return
 	} else {
-
 		actor, exist := insRoom().ActorsManager().GetActorByPeerId(id)
 		if !exist {
 			handleErrors(id, opCode, errors.New("cannot find the actor by the peeerid:"+id))
