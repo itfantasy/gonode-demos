@@ -73,3 +73,7 @@ func (this *ActorsManager) GetAllActorNrs() []int32 {
 	}
 	return list
 }
+
+func (this *ActorsManager) ClearAll() {
+	this.allActors.Clear()
+}

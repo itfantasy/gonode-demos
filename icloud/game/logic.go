@@ -50,13 +50,13 @@ func HandleMsg(id string, msg []byte) {
 }
 
 var actorNr int32 = 1
-var _insRoom *room.Room = nil
+var _insRoomManager *room.RoomManager = nil
 
 func insRoom() *room.Room {
-	if _insRoom == nil {
-		_insRoom = room.NewRoom(3001)
+	if _insRoomManager == nil {
+		_insRoomManager = room.NewRoomManager()
 	}
-	return _insRoom
+	return _insRoomManager.FetchRoom("game1123")
 }
 
 func handleErrors(id string, opCode byte, err error) {

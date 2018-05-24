@@ -55,11 +55,15 @@ func (this *RoomEventCache) Events() []interface{} {
 	return this.list.Values()
 }
 
+func (this *RoomEventCache) ClearCache() {
+	this.list.Clear()
+}
+
+/*
 type RoomEventCacheManager struct {
 	_map *stl.Dictionary // roomid=>RoomEventCache
 }
 
-/*
 var _roomEventCacheManager *RoomEventCacheManager
 
 func InsRoomEventCacheManager() *RoomEventCacheManager {
