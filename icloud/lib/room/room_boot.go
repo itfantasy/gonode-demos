@@ -58,7 +58,7 @@ func (this *RoomBoot) OnMsg(id string, msg []byte) {
 	}
 }
 func (this *RoomBoot) OnClose(id string) {
-
+	this.server.OnClose(id)
 }
 func (this *RoomBoot) OnShell(id string, msg string) {
 

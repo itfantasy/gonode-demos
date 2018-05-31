@@ -5,4 +5,5 @@ type RoomServer interface {
 	Update() // timer update
 	OnMsg(string, []byte)
 	OnReload(string) error
+	OnClose(string)
 }

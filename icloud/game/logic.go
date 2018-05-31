@@ -49,6 +49,23 @@ func HandleMsg(id string, msg []byte) {
 	}
 }
 
+func HandleClose(id string) {
+	if actor, exist := insRoom().ActorsManager().GetActorByPeerId(id); exist {
+		insRoom().EventCache().RemoveEventsByActor(actor.ActorNr) // remove the events of the actor from the eventcache
+		insRoom().ActorsManager().RemoveActorByNr(actor.ActorNr)  // remove the actor from the actormanager
+
+		if insRoom().MasterClientId == actor.ActorNr {
+			if newactor, exist := insRoom().ActorsManager().GetActorByIndex(0); exist {
+				insRoom().MasterClientId = newactor.ActorNr // testcode:use the first actor of the left room actors as the masterclient
+			} else {
+				insRoom().MasterClientId = 0 // testcode:when the room has no actors
+			}
+		}
+
+		pubDisconnectEvent(id, actor.ActorNr)
+	}
+}
+
 var actorNr int32 = 1
 var _insRoomManager *room.RoomManager = nil
 
@@ -123,6 +140,9 @@ func handleCreateGame(id string, opCode byte, parser *gnbuffers.GnParser) {
 			return
 		} else {
 			suc = true
+			if insRoom().MasterClientId != 0 {
+				insRoom().MasterClientId = actor.ActorNr // testcode: use the first actor as the masterclient of the room
+			}
 		}
 		actorNrs := insRoom().ActorsManager().GetAllActorNrs()
 		buf.PushByte(paramcode.Actors)
@@ -301,6 +321,62 @@ func pubEventCache(id string) {
 	}
 }
 
+func pubLeaveEvent(id string, opCode byte, parser *gnbuffers.GnParser, actorNr int32) {
+	if evn, err := gnbuffers.BuildBuffer(1024); err != nil {
+		handleErrors(id, opCode, err)
+		return
+	} else {
+		evn.PushByte(1)
+		evn.PushByte(evncode.Leave)
+
+		evn.PushByte(paramcode.ActorNr)
+		evn.PushObject(actorNr)
+
+		actorNrs := insRoom().ActorsManager().GetAllActorNrs()
+		evn.PushByte(paramcode.Actors)
+		evn.PushObject(actorNrs)
+
+		evn.PushByte(paramcode.IsInactive)
+		evn.PushBool(false)
+
+		ids := insRoom().ActorsManager().GetAllPeerIds()
+		for _, item := range ids {
+			if item != id {
+				//			fmt.Println(evn.Bytes())
+				gonode.Send(item, evn.Bytes())
+			}
+		}
+	}
+}
+
+func pubDisconnectEvent(id string, actorNr int32) {
+	if evn, err := gnbuffers.BuildBuffer(1024); err != nil {
+		handleErrors(id, 0, err)
+		return
+	} else {
+		evn.PushByte(1)
+		evn.PushByte(evncode.Leave)
+
+		evn.PushByte(paramcode.ActorNr)
+		evn.PushObject(actorNr)
+
+		actorNrs := make([]int32, 0, 0)
+		evn.PushByte(paramcode.Actors)
+		evn.PushObject(actorNrs)
+
+		evn.PushByte(paramcode.IsInactive)
+		evn.PushBool(true)
+
+		ids := insRoom().ActorsManager().GetAllPeerIds()
+		for _, item := range ids {
+			if item != id {
+				//			fmt.Println(evn.Bytes())
+				gonode.Send(item, evn.Bytes())
+			}
+		}
+	}
+}
+
 func pubJoinEvent(id string, opCode byte, parser *gnbuffers.GnParser, actorNr int32) {
 	if evn, err := gnbuffers.BuildBuffer(1024); err != nil {
 		handleErrors(id, opCode, err)
@@ -325,7 +401,7 @@ func pubJoinEvent(id string, opCode byte, parser *gnbuffers.GnParser, actorNr in
 		evn.PushByte(paramcode.Actors)
 		evn.PushObject(actorNrs)
 
-		ids := gonode.Node().NetWorker().GetAllConnIds()
+		ids := insRoom().ActorsManager().GetAllPeerIds()
 		for _, item := range ids {
 			//			fmt.Println(evn.Bytes())
 			gonode.Send(item, evn.Bytes())

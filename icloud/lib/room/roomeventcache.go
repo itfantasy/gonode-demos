@@ -40,7 +40,7 @@ func (this *RoomEventCache) AddEvent(actor int32, eventCode byte, data []byte) {
 func (this *RoomEventCache) RemoveEventsByActor(actor int32) int {
 	dirtyList := stl.NewList(10)
 	for _, item := range this.list.Values() {
-		customeEvent := item.(CustomEvent)
+		customeEvent := item.(*CustomEvent)
 		if customeEvent.ActorNr == actor {
 			dirtyList.Add(customeEvent)
 		}

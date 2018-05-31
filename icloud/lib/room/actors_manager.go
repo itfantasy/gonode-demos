@@ -49,6 +49,14 @@ func (this *ActorsManager) GetActorByPeerId(peerId string) (*Actor, bool) {
 	return nil, false
 }
 
+func (this *ActorsManager) GetActorByIndex(index int) (*Actor, bool) {
+	actor, err := this.allActors.Get(index)
+	if err != nil {
+		return nil, false
+	}
+	return actor.(*Actor), true
+}
+
 func (this *ActorsManager) RemoveActorByNr(actorNr int32) bool {
 	if actor, exist := this.GetActorByNr(actorNr); exist {
 		this.allActors.Remove(actor)
@@ -72,6 +80,19 @@ func (this *ActorsManager) GetAllActorNrs() []int32 {
 		list = append(list, actor.ActorNr)
 	}
 	return list
+}
+
+func (this *ActorsManager) GetAllPeerIds() []string {
+	list := make([]string, 0, this.allActors.Count())
+	for _, item := range this.allActors.Values() {
+		actor := item.(*Actor)
+		list = append(list, actor.PeerId)
+	}
+	return list
+}
+
+func (this *ActorsManager) ActorsCount() int {
+	return this.allActors.Count()
 }
 
 func (this *ActorsManager) ClearAll() {

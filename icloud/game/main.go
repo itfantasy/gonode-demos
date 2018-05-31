@@ -21,8 +21,11 @@ func (this *RoomServer) OnMsg(id string, msg []byte) {
 	//fmt.Println(msg)
 	HandleMsg(id, msg)
 }
-func (this *RoomServer) OnReload(string) error {
+func (this *RoomServer) OnReload(id string) error {
 	return nil
+}
+func (this *RoomServer) OnClose(id string) {
+	HandleClose(id)
 }
 func main() {
 	server := new(RoomServer)

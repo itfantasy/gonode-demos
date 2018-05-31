@@ -8,14 +8,16 @@ import (
 
 // the room struct
 type Room struct {
-	Name          string
-	actorsManager *ActorsManager
-	eventCache    *RoomEventCache
+	Name           string
+	MasterClientId int32
+	actorsManager  *ActorsManager
+	eventCache     *RoomEventCache
 }
 
 func NewRoom(name string) *Room {
 	room := new(Room)
 	room.Name = name
+	room.MasterClientId = 0
 	room.actorsManager = NewActorsManager()
 	room.eventCache = NewRoomEventCache()
 	return room
