@@ -67,7 +67,8 @@ func HandleClose(id string) {
 
 		fmt.Print("try to pub the disconnect event :")
 		fmt.Println(actor.ActorNr)
-		pubDisconnectEvent(id, actor.ActorNr)
+		//pubDisconnectEvent(id, actor.ActorNr)
+		pubLeaveEvent(id, actor.ActorNr)
 	}
 }
 
@@ -326,9 +327,9 @@ func pubEventCache(id string) {
 	}
 }
 
-func pubLeaveEvent(id string, opCode byte, parser *gnbuffers.GnParser, actorNr int32) {
+func pubLeaveEvent(id string, actorNr int32) {
 	if evn, err := gnbuffers.BuildBuffer(1024); err != nil {
-		handleErrors(id, opCode, err)
+		handleErrors(id, 0, err)
 		return
 	} else {
 		evn.PushByte(1)
@@ -342,12 +343,12 @@ func pubLeaveEvent(id string, opCode byte, parser *gnbuffers.GnParser, actorNr i
 		evn.PushObject(actorNrs)
 
 		evn.PushByte(paramcode.IsInactive)
-		evn.PushBool(false)
+		evn.PushObject(false)
 
 		ids := insRoom().ActorsManager().GetAllPeerIds()
 		for _, item := range ids {
 			if item != id {
-				//			fmt.Println(evn.Bytes())
+				fmt.Println(evn.Bytes())
 				gonode.Send(item, evn.Bytes())
 			}
 		}
@@ -370,7 +371,7 @@ func pubDisconnectEvent(id string, actorNr int32) {
 		evn.PushObject(actorNrs)
 
 		evn.PushByte(paramcode.IsInactive)
-		evn.PushBool(true)
+		evn.PushObject(true)
 
 		ids := insRoom().ActorsManager().GetAllPeerIds()
 		for _, item := range ids {
