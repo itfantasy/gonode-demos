@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	//	"strconv"
 	//	"fmt"
 
 	"github.com/itfantasy/gonode"
@@ -50,10 +51,12 @@ func HandleMsg(id string, msg []byte) {
 }
 
 func HandleClose(id string) {
+	fmt.Println("the conn has been closed:" + id)
 	if actor, exist := insRoom().ActorsManager().GetActorByPeerId(id); exist {
+		fmt.Print("has found the target actor:")
+		fmt.Println(actor.ActorNr)
 		insRoom().EventCache().RemoveEventsByActor(actor.ActorNr) // remove the events of the actor from the eventcache
 		insRoom().ActorsManager().RemoveActorByNr(actor.ActorNr)  // remove the actor from the actormanager
-
 		if insRoom().MasterClientId == actor.ActorNr {
 			if newactor, exist := insRoom().ActorsManager().GetActorByIndex(0); exist {
 				insRoom().MasterClientId = newactor.ActorNr // testcode:use the first actor of the left room actors as the masterclient
@@ -62,6 +65,8 @@ func HandleClose(id string) {
 			}
 		}
 
+		fmt.Print("try to pub the disconnect event :")
+		fmt.Println(actor.ActorNr)
 		pubDisconnectEvent(id, actor.ActorNr)
 	}
 }
@@ -140,7 +145,7 @@ func handleCreateGame(id string, opCode byte, parser *gnbuffers.GnParser) {
 			return
 		} else {
 			suc = true
-			if insRoom().MasterClientId != 0 {
+			if insRoom().MasterClientId == 0 {
 				insRoom().MasterClientId = actor.ActorNr // testcode: use the first actor as the masterclient of the room
 			}
 		}
@@ -370,7 +375,7 @@ func pubDisconnectEvent(id string, actorNr int32) {
 		ids := insRoom().ActorsManager().GetAllPeerIds()
 		for _, item := range ids {
 			if item != id {
-				//			fmt.Println(evn.Bytes())
+				fmt.Println(evn.Bytes())
 				gonode.Send(item, evn.Bytes())
 			}
 		}
