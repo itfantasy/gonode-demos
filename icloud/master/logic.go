@@ -7,9 +7,9 @@ import (
 	"github.com/itfantasy/gonode/gnbuffers"
 	//	"github.com/itfantasy/gonode/utils/json"
 	//"github.com/itfantasy/gonode/utils/stl"
-	"github.com/itfantasy/gonode_demo/icloud/opcode"
-	"github.com/itfantasy/gonode_demo/icloud/opcode/errorcode"
-	"github.com/itfantasy/gonode_demo/icloud/opcode/paramcode"
+	"github.com/itfantasy/gonode-demos/icloud/opcode"
+	"github.com/itfantasy/gonode-demos/icloud/opcode/errorcode"
+	"github.com/itfantasy/gonode-demos/icloud/opcode/paramcode"
 )
 
 func HandleMsg(id string, msg []byte) {
