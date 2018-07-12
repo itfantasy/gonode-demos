@@ -10,167 +10,167 @@ const (
 	///   The actor nr
 	///   used as op-key and ev-key
 	/// </summary>
-	ActorNr = 254
+	ActorNr byte = 254
 
 	/// <summary>
 	///   The target actor nr.
 	/// </summary>
-	TargetActorNr = 253
+	TargetActorNr byte = 253
 
 	/// <summary>
 	///   The actors.
 	/// </summary>
-	Actors = 252
+	Actors byte = 252
 
 	/// <summary>
 	///   The properties.
 	/// </summary>
-	Properties = 251
+	Properties byte = 251
 
 	/// <summary>
 	///   The broadcast.
 	/// </summary>
-	Broadcast = 250
+	Broadcast byte = 250
 
 	/// <summary>
 	///   The actor properties.
 	/// </summary>
-	ActorProperties = 249
+	ActorProperties byte = 249
 
 	/// <summary>
 	///   The game properties.
 	/// </summary>
-	GameProperties = 248
+	GameProperties byte = 248
 
 	/// <summary>
 	///   Event parameter to indicate whether events are cached for new actors.
 	/// </summary>
-	Cache = 247
+	Cache byte = 247
 
 	/// <summary>
 	///   Event parameter containing a <see cref="Photon.Hive.Operations.ReceiverGroup"/> value.
 	/// </summary>
-	ReceiverGroup = 246
+	ReceiverGroup byte = 246
 
 	/// <summary>
 	///   The data.
 	/// </summary>
-	Data = 245
+	Data byte = 245
 
 	/// <summary>
 	///   The paramter code for the <see cref="RaiseEventRequest">raise event</see> operations event code.
 	/// </summary>
-	Code = 244
+	Code byte = 244
 
 	/// <summary>
 	///   the flush event code for raise event.
 	/// </summary>
-	Flush = 243
+	Flush byte = 243
 
 	/// <summary>
 	/// Event parameter to indicate whether cached events are deleted automaticly for actors leaving a room.
 	/// </summary>
-	DeleteCacheOnLeave = 241
+	DeleteCacheOnLeave byte = 241
 
 	/// <summary>
 	/// The group this event should be sent to. No error is happening if the group is empty or not existing.
 	/// </summary>
-	Group = 240
+	Group byte = 240
 
 	/// <summary>
 	/// Groups to leave. Null won't remove any groups. byte[0] will remove ALL groups. Otherwise only the groups listed will be removed.
 	/// </summary>
-	GroupsForRemove = 239
+	GroupsForRemove byte = 239
 	/// <summary>
 	/// Should or not JoinGame response and JoinEvent contain user ids
 	/// </summary>
-	PublishUserId = 239
+	PublishUserId byte = 239
 
 	/// <summary>
 	/// Groups to enter. Null won't add groups. byte[0] will add ALL groups. Otherwise only the groups listed will be added.
 	/// </summary>
-	GroupsForAdd = 238
+	GroupsForAdd byte = 238
 
-	AddUsers = 238
+	AddUsers byte = 238
 
 	/// <summary>
 	/// A parameter indicating if common room events (Join Leave) will be suppressed.
 	/// </summary>
-	SuppressRoomEvents = 237
+	SuppressRoomEvents byte = 237
 
 	/// <summary>
 	/// A parameter indicating how long a room instance should be kept alive in the
 	/// room cache after all players left the room.
 	/// </summary>
-	EmptyRoomLiveTime = 236
+	EmptyRoomLiveTime byte = 236
 
 	/// <summary>
 	/// A parameter indicating how long a player is allowd to rejoin.
 	/// </summary>
-	PlayerTTL = 235
+	PlayerTTL byte = 235
 
 	/// <summary>
 	/// A parameter indicating that content of room event should be forwarded to some server
 	/// </summary>
-	HttpForward = 234
-	WebFlags    = 234
+	HttpForward byte = 234
+	WebFlags    byte = 234
 
 	/// <summary>
 	/// Allows the player to re-join the game.
 	/// </summary>
-	IsInactive = 233
+	IsInactive byte = 233
 
 	/// <summary>
 	/// Activates UserId checks on joining - allowing a users to be only once in the room.
 	/// Default is deactivated for backwards compatibility but we recomend to use in future
 	/// Note: Should be active for saved games.
 	/// </summary>
-	CheckUserOnJoin = 232
+	CheckUserOnJoin byte = 232
 
 	/// <summary>
 	/// Expected values for actor and game properties
 	/// </summary>
-	ExpectedValues = 231
+	ExpectedValues byte = 231
 
 	// load balancing project specific parameters
-	Address     = 230
-	PeerCount   = 229
-	ForceRejoin = 229
+	Address     byte = 230
+	PeerCount   byte = 229
+	ForceRejoin byte = 229
 
-	GameCount                  = 228
-	MasterPeerCount            = 227
-	UserId                     = 225
-	ApplicationId              = 224
-	Position                   = 223
-	GameList                   = 222
-	Token                      = 221
-	AppVersion                 = 220
-	NodeId                     = 219
-	Info                       = 218
-	ClientAuthenticationType   = 217
-	ClientAuthenticationParams = 216
-	CreateIfNotExists          = 215
-	JoinMode                   = 215
-	ClientAuthenticationData   = 214
-	LobbyName                  = 213
-	LobbyType                  = 212
-	LobbyStats                 = 211
-	Region                     = 210
-	UriPath                    = 209
+	GameCount                  byte = 228
+	MasterPeerCount            byte = 227
+	UserId                     byte = 225
+	ApplicationId              byte = 224
+	Position                   byte = 223
+	GameList                   byte = 222
+	Token                      byte = 221
+	AppVersion                 byte = 220
+	NodeId                     byte = 219
+	Info                       byte = 218
+	ClientAuthenticationType   byte = 217
+	ClientAuthenticationParams byte = 216
+	CreateIfNotExists          byte = 215
+	JoinMode                   byte = 215
+	ClientAuthenticationData   byte = 214
+	LobbyName                  byte = 213
+	LobbyType                  byte = 212
+	LobbyStats                 byte = 211
+	Region                     byte = 210
+	UriPath                    byte = 209
 
-	RpcCallParams     = 208
-	RpcCallRetCode    = 207
-	RpcCallRetMessage = 206
+	RpcCallParams     byte = 208
+	RpcCallRetCode    byte = 207
+	RpcCallRetMessage byte = 206
 
-	CacheSliceIndex = 205
+	CacheSliceIndex byte = 205
 
-	Plugins = 204
+	Plugins byte = 204
 
-	MasterClientId = 203
+	MasterClientId byte = 203
 
-	Nickname = 202
+	Nickname byte = 202
 
-	PluginName    = 201
-	PluginVersion = 200
-	Flags         = 199
+	PluginName    byte = 201
+	PluginVersion byte = 200
+	Flags         byte = 199
 )

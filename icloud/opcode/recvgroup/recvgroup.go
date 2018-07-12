@@ -9,10 +9,10 @@ const (
 	/// <summary>
 	///   Send to all actors including the sender.
 	/// </summary>
-	All = 1
+	All byte = 1
 
 	/// <summary>
 	///   Send to the peer with the lowest actor number.
 	/// </summary>
-	MasterClient = 2
+	MasterClient byte = 2
 )

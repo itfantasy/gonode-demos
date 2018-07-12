@@ -2,6 +2,6 @@ package actorparam
 
 const (
 	Nickname   byte = 255
-	IsInactive      = 254
-	UserId          = 253
+	IsInactive byte = 254
+	UserId     byte = 253
 )

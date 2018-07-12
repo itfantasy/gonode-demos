@@ -137,6 +137,7 @@ func handleCreateGame(id string, opCode byte, parser *gnbuffers.GnParser) {
 		hash.Set(gameparam.IsVisible, true)
 		hash.Set(gameparam.IsOpen, true)
 		hash.Set(gameparam.MasterClientId, actorNr)
+		hash.Set(gameparam.CleanupCacheOnLeave, true)
 		buf.PushObject(hash.KeyValuePairs())
 
 		suc := false
@@ -186,6 +187,7 @@ func handleJoinGame(id string, opCode byte, parser *gnbuffers.GnParser) {
 		hash.Set(gameparam.IsVisible, true)
 		hash.Set(gameparam.IsOpen, true)
 		hash.Set(gameparam.MasterClientId, actorNr)
+		hash.Set(gameparam.CleanupCacheOnLeave, true)
 		buf.PushObject(hash.KeyValuePairs())
 
 		suc := false
