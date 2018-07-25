@@ -17,10 +17,19 @@ import (
 	"github.com/itfantasy/gonode-demos/icloud/opcode/gameparam"
 	"github.com/itfantasy/gonode-demos/icloud/opcode/paramcode"
 	"github.com/itfantasy/gonode-demos/icloud/opcode/recvgroup"
+	"github.com/itfantasy/gonode-demos/icloud/opcode/servereventcode"
 	"github.com/itfantasy/gonode/utils/stl"
+	"github.com/itfantasy/gonode/utils/strs"
 
 	"github.com/itfantasy/gonode-demos/icloud/lib/room"
+	"github.com/itfantasy/gonode-demos/icloud/peers"
 )
+
+func HandleConn(id string) {
+	if strs.StartsWith(id, "cnt") {
+		insPeerManager().AddPeer(peers.NewClientPeer(id))
+	}
+}
 
 func HandleMsg(id string, msg []byte) {
 	parser := gnbuffers.BuildParser(msg, 0)
@@ -28,21 +37,25 @@ func HandleMsg(id string, msg []byte) {
 		gonode.Node().Logger().Error(err.Error())
 		return
 	} else {
+		peer, ok := insPeerManager().GetClientPeer(id)
+		if !ok {
+			return
+		}
 		switch opCode {
 		case opcode.Authenticate:
-			handleAuthenticate(id, opCode, parser)
+			handleAuthenticate(peer, opCode, parser)
 			break
 		case opcode.CreateGame:
-			handleCreateGame(id, opCode, parser)
+			handleCreateGame(peer, opCode, parser)
 			break
 		case opcode.JoinGame:
-			handleJoinGame(id, opCode, parser)
+			handleJoinGame(peer, opCode, parser)
 			break
 		case opcode.RaiseEvent:
-			handleRaiseEvent(id, opCode, parser)
+			handleRaiseEvent(peer, opCode, parser)
 			break
 		case opcode.SetProperties:
-			handleSetProperties(id, opCode, parser)
+			handleSetProperties(peer, opCode, parser)
 		default:
 			gonode.Send(id, msg)
 			break
@@ -51,35 +64,62 @@ func HandleMsg(id string, msg []byte) {
 }
 
 func HandleClose(id string) {
-	fmt.Println("the conn has been closed:" + id)
-	if actor, exist := insRoom().ActorsManager().GetActorByPeerId(id); exist {
+	peer, ok := insPeerManager().GetClientPeer(id)
+	if !ok {
+		return
+	}
+	fmt.Println("the conn has been closed:" + peer.PeerId())
+	room := insRoom(peer.RoomId())
+	if actor, exist := room.ActorsManager().GetActorByPeerId(peer.PeerId()); exist {
 		fmt.Print("has found the target actor:")
 		fmt.Println(actor.ActorNr)
-		insRoom().EventCache().RemoveEventsByActor(actor.ActorNr) // remove the events of the actor from the eventcache
-		insRoom().ActorsManager().RemoveActorByNr(actor.ActorNr)  // remove the actor from the actormanager
-		if insRoom().MasterClientId == actor.ActorNr {
-			if newactor, exist := insRoom().ActorsManager().GetActorByIndex(0); exist {
-				insRoom().MasterClientId = newactor.ActorNr // testcode:use the first actor of the left room actors as the masterclient
+		room.EventCache().RemoveEventsByActor(actor.ActorNr) // remove the events of the actor from the eventcache
+		room.ActorsManager().RemoveActorByNr(actor.ActorNr)  // remove the actor from the actormanager
+		if room.MasterClientId == actor.ActorNr {
+			if newactor, exist := insRoom(peer.RoomId()).ActorsManager().GetActorByIndex(0); exist {
+				room.MasterClientId = newactor.ActorNr // testcode:use the first actor of the left room actors as the masterclient
 			} else {
-				insRoom().MasterClientId = 0 // testcode:when the room has no actors
+				room.MasterClientId = 0 // testcode:when the room has no actors
 			}
 		}
 
 		fmt.Print("try to pub the disconnect event :")
 		fmt.Println(actor.ActorNr)
 		//pubDisconnectEvent(id, actor.ActorNr)
-		pubLeaveEvent(id, actor.ActorNr)
+		pubLeaveEvent(peer, actor.ActorNr)
+
+		// check the room is empty, and send a remove roomstate event to lobby
+		if room.IsEmpty() {
+			disposeRoom(room.Name)
+			sendRemoveRoomState(room.Name)
+		}
 	}
+}
+
+var _insPeerManager *peers.PeerManager = nil
+
+func insPeerManager() *peers.PeerManager {
+	if _insPeerManager == nil {
+		_insPeerManager = peers.NewPeerManager()
+	}
+	return _insPeerManager
 }
 
 var actorNr int32 = 1
 var _insRoomManager *room.RoomManager = nil
 
-func insRoom() *room.Room {
+func insRoom(roomId string) *room.Room {
 	if _insRoomManager == nil {
 		_insRoomManager = room.NewRoomManager()
 	}
-	return _insRoomManager.FetchRoom("game1123")
+	return _insRoomManager.FetchRoom(roomId)
+}
+
+func disposeRoom(roomId string) {
+	if _insRoomManager == nil {
+		_insRoomManager = room.NewRoomManager()
+	}
+	_insRoomManager.DisposeRoom(roomId)
 }
 
 func handleErrors(id string, opCode byte, err error) {
@@ -88,35 +128,47 @@ func handleErrors(id string, opCode byte, err error) {
 	fmt.Println(err)
 }
 
-func handleSetProperties(id string, opCode byte, parser *gnbuffers.GnParser) {
+func handleSetProperties(peer *peers.ClientPeer, opCode byte, parser *gnbuffers.GnParser) {
 	if buf, err := gnbuffers.BuildBuffer(256); err != nil {
-		handleErrors(id, opCode, err)
+		handleErrors(peer.PeerId(), opCode, err)
 		return
 	} else {
 		buf.PushByte(0)      // resp
 		buf.PushShort(0)     // retcode
 		buf.PushByte(opCode) // opcode
-		gonode.Send(id, buf.Bytes())
+		gonode.Send(peer.PeerId(), buf.Bytes())
 	}
 }
 
-func handleAuthenticate(id string, opCode byte, parser *gnbuffers.GnParser) {
+func handleAuthenticate(peer *peers.ClientPeer, opCode byte, parser *gnbuffers.GnParser) {
 	if buf, err := gnbuffers.BuildBuffer(256); err != nil {
-		handleErrors(id, opCode, err)
+		handleErrors(peer.PeerId(), opCode, err)
 		return
 	} else {
 		buf.PushByte(0)      // resp
 		buf.PushShort(0)     // retcode
 		buf.PushByte(opCode) // opcode
-		gonode.Send(id, buf.Bytes())
+		gonode.Send(peer.PeerId(), buf.Bytes())
 	}
 }
 
-func handleCreateGame(id string, opCode byte, parser *gnbuffers.GnParser) {
+func handleCreateGame(peer *peers.ClientPeer, opCode byte, parser *gnbuffers.GnParser) {
 	if buf, err := gnbuffers.BuildBuffer(256); err != nil {
-		handleErrors(id, opCode, err)
+		handleErrors(peer.PeerId(), opCode, err)
 		return
 	} else {
+		parser.Byte() // 255
+		_roomId, err := parser.Object()
+		if err != nil {
+			handleErrors(peer.PeerId(), opCode, err)
+			return
+		}
+		roomId, ok := _roomId.(string)
+		if !ok {
+			handleErrors(peer.PeerId(), opCode, errors.New("cannot get the roomId!"))
+			return
+		}
+
 		buf.PushByte(0)
 		buf.PushShort(errorcode.Ok)
 		buf.PushByte(opCode)
@@ -141,33 +193,47 @@ func handleCreateGame(id string, opCode byte, parser *gnbuffers.GnParser) {
 		buf.PushObject(hash.KeyValuePairs())
 
 		suc := false
-		actor, err := insRoom().ActorsManager().AddNewActor(id, actorNr)
+		actor, err := insRoom(roomId).ActorsManager().AddNewActor(peer.PeerId(), actorNr)
 		if err != nil {
-			handleErrors(id, opCode, err)
+			handleErrors(peer.PeerId(), opCode, err)
 			return
 		} else {
 			suc = true
-			if insRoom().MasterClientId == 0 {
-				insRoom().MasterClientId = actor.ActorNr // testcode: use the first actor as the masterclient of the room
+			if insRoom(peer.RoomId()).MasterClientId == 0 {
+				insRoom(peer.RoomId()).MasterClientId = actor.ActorNr // testcode: use the first actor as the masterclient of the room
 			}
+			peer.SetRoomId(roomId)
 		}
-		actorNrs := insRoom().ActorsManager().GetAllActorNrs()
+		actorNrs := insRoom(peer.RoomId()).ActorsManager().GetAllActorNrs()
 		buf.PushByte(paramcode.Actors)
 		buf.PushObject(actorNrs)
 
-		gonode.Send(id, buf.Bytes())
+		gonode.Send(peer.PeerId(), buf.Bytes())
 		if suc {
-			pubJoinEvent(id, opCode, parser, actor.ActorNr)
+			pubJoinEvent(peer, opCode, parser, actor.ActorNr)
 		}
 		actorNr += 1
 	}
 }
 
-func handleJoinGame(id string, opCode byte, parser *gnbuffers.GnParser) {
+func handleJoinGame(peer *peers.ClientPeer, opCode byte, parser *gnbuffers.GnParser) {
 	if buf, err := gnbuffers.BuildBuffer(1024); err != nil {
-		handleErrors(id, opCode, err)
+		handleErrors(peer.PeerId(), opCode, err)
 		return
 	} else {
+
+		parser.Byte() // 255
+		_roomId, err := parser.Object()
+		if err != nil {
+			handleErrors(peer.PeerId(), opCode, err)
+			return
+		}
+		roomId, ok := _roomId.(string)
+		if !ok {
+			handleErrors(peer.PeerId(), opCode, errors.New("cannot get the roomId!"))
+			return
+		}
+
 		buf.PushByte(0)
 		buf.PushShort(errorcode.Ok)
 		buf.PushByte(opCode)
@@ -183,53 +249,54 @@ func handleJoinGame(id string, opCode byte, parser *gnbuffers.GnParser) {
 		hash := stl.NewHashTable()
 		hash.Set(gameparam.LobbyProperties, true)
 		hash.Set(gameparam.CleanupCacheOnLeave, true)
-		hash.Set(gameparam.MaxPlayers, 4)
+		hash.Set(gameparam.MaxPlayers, byte(4))
 		hash.Set(gameparam.IsVisible, true)
 		hash.Set(gameparam.IsOpen, true)
-		hash.Set(gameparam.MasterClientId, actorNr)
+		hash.Set(gameparam.MasterClientId, insRoom(peer.RoomId()).MasterClientId)
 		hash.Set(gameparam.CleanupCacheOnLeave, true)
 		buf.PushObject(hash.KeyValuePairs())
 
 		suc := false
-		actor, err := insRoom().ActorsManager().AddNewActor(id, actorNr)
+		actor, err := insRoom(roomId).ActorsManager().AddNewActor(peer.PeerId(), actorNr)
 		if err != nil {
-			handleErrors(id, opCode, err)
+			handleErrors(peer.PeerId(), opCode, err)
 			return
 		} else {
 			suc = true
+			peer.SetRoomId(roomId)
 		}
-		actorNrs := insRoom().ActorsManager().GetAllActorNrs()
+		actorNrs := insRoom(peer.RoomId()).ActorsManager().GetAllActorNrs()
 		buf.PushByte(paramcode.Actors)
 		buf.PushObject(actorNrs)
 
-		gonode.Send(id, buf.Bytes())
+		gonode.Send(peer.PeerId(), buf.Bytes())
 		if suc {
-			pubJoinEvent(id, opCode, parser, actor.ActorNr)
+			pubJoinEvent(peer, opCode, parser, actor.ActorNr)
 		}
 		actorNr += 1
 	}
 }
 
-func handleRaiseEvent(id string, opCode byte, parser *gnbuffers.GnParser) {
+func handleRaiseEvent(peer *peers.ClientPeer, opCode byte, parser *gnbuffers.GnParser) {
 	// send self resp
 	if buf, err := gnbuffers.BuildBuffer(1024); err != nil {
-		handleErrors(id, opCode, err)
+		handleErrors(peer.PeerId(), opCode, err)
 		return
 	} else {
 		buf.PushByte(0)
 		buf.PushShort(errorcode.Ok)
 		buf.PushByte(opCode)
-		gonode.Send(id, buf.Bytes())
+		gonode.Send(peer.PeerId(), buf.Bytes())
 	}
 
 	// pub the event to others
 	if evn, err := gnbuffers.BuildBuffer(1024); err != nil {
-		handleErrors(id, opCode, err)
+		handleErrors(peer.PeerId(), opCode, err)
 		return
 	} else {
-		actor, exist := insRoom().ActorsManager().GetActorByPeerId(id)
+		actor, exist := insRoom(peer.RoomId()).ActorsManager().GetActorByPeerId(peer.PeerId())
 		if !exist {
-			handleErrors(id, opCode, errors.New("cannot find the actor by the peeerid:"+id))
+			handleErrors(peer.PeerId(), opCode, errors.New("cannot find the actor by the peeerid:"+peer.PeerId()))
 			return
 		}
 
@@ -253,14 +320,14 @@ func handleRaiseEvent(id string, opCode byte, parser *gnbuffers.GnParser) {
 		for {
 			paramCode, err := parser.Byte()
 			if err != nil {
-				handleErrors(id, opCode, err)
+				handleErrors(peer.PeerId(), opCode, err)
 				return
 			}
 			//fmt.Print("paramCode:")
 			//fmt.Println(paramCode)
 			if paramCode == paramcode.ReceiverGroup { // ReceiverGroup
 				if oRecvGroup, err := parser.Object(); err != nil {
-					handleErrors(id, opCode, err)
+					handleErrors(peer.PeerId(), opCode, err)
 					return
 				} else {
 					recvGroup = oRecvGroup.(byte)
@@ -268,7 +335,7 @@ func handleRaiseEvent(id string, opCode byte, parser *gnbuffers.GnParser) {
 				//parser.Byte() // Data
 			} else if paramCode == paramcode.Cache { // the event which will be cached
 				if oCacheOp, err := parser.Object(); err != nil {
-					handleErrors(id, opCode, err)
+					handleErrors(peer.PeerId(), opCode, err)
 					return
 				} else {
 					cacheOp = oCacheOp.(byte)
@@ -284,15 +351,15 @@ func handleRaiseEvent(id string, opCode byte, parser *gnbuffers.GnParser) {
 
 		// handle the cacheOp
 		if cacheOp == cacheop.AddToRoomCache || cacheOp == cacheop.AddToRoomCacheGlobal {
-			if actor, exist := insRoom().ActorsManager().GetActorByPeerId(id); exist {
-				evnCache().AddEvent(actor.ActorNr, eventCode, evn.Bytes())
+			if actor, exist := insRoom(peer.RoomId()).ActorsManager().GetActorByPeerId(peer.PeerId()); exist {
+				evnCache(peer).AddEvent(actor.ActorNr, eventCode, evn.Bytes())
 			}
 		}
 
 		// handle the recvGroup
 		ids := gonode.Node().NetWorker().GetAllConnIds() // get the ids in the same room
 		if recvGroup == recvgroup.MasterClient {
-			gonode.Send(id, evn.Bytes())
+			gonode.Send(peer.PeerId(), evn.Bytes())
 		} else if recvGroup == recvgroup.All {
 			for _, item := range ids {
 				//fmt.Println(evn.Bytes())
@@ -300,7 +367,7 @@ func handleRaiseEvent(id string, opCode byte, parser *gnbuffers.GnParser) {
 			}
 		} else {
 			for _, item := range ids {
-				if item != id {
+				if item != peer.PeerId() {
 					//fmt.Println(evn.Bytes())
 					gonode.Send(item, evn.Bytes())
 				}
@@ -310,13 +377,13 @@ func handleRaiseEvent(id string, opCode byte, parser *gnbuffers.GnParser) {
 	}
 }
 
-func evnCache() *room.RoomEventCache {
-	return insRoom().EventCache()
+func evnCache(peer *peers.ClientPeer) *room.RoomEventCache {
+	return insRoom(peer.RoomId()).EventCache()
 }
 
 //HiveGame.PublishEventCache (line 1410)
-func pubEventCache(id string) {
-	for _, item := range evnCache().Events() {
+func pubEventCache(peer *peers.ClientPeer) {
+	for _, item := range evnCache(peer).Events() {
 		event := item.(*room.CustomEvent)
 		fmt.Print("pub the cache event:")
 		fmt.Print(" actorNr:")
@@ -325,13 +392,13 @@ func pubEventCache(id string) {
 		fmt.Println(event.Code)
 		fmt.Print("Data:")
 		fmt.Println(event.Data)
-		gonode.Send(id, event.Data)
+		gonode.Send(peer.PeerId(), event.Data)
 	}
 }
 
-func pubLeaveEvent(id string, actorNr int32) {
+func pubLeaveEvent(peer *peers.ClientPeer, actorNr int32) {
 	if evn, err := gnbuffers.BuildBuffer(1024); err != nil {
-		handleErrors(id, 0, err)
+		handleErrors(peer.PeerId(), 0, err)
 		return
 	} else {
 		evn.PushByte(1)
@@ -340,16 +407,16 @@ func pubLeaveEvent(id string, actorNr int32) {
 		evn.PushByte(paramcode.ActorNr)
 		evn.PushObject(actorNr)
 
-		actorNrs := insRoom().ActorsManager().GetAllActorNrs()
+		actorNrs := insRoom(peer.RoomId()).ActorsManager().GetAllActorNrs()
 		evn.PushByte(paramcode.Actors)
 		evn.PushObject(actorNrs)
 
 		evn.PushByte(paramcode.IsInactive)
 		evn.PushObject(false)
 
-		ids := insRoom().ActorsManager().GetAllPeerIds()
+		ids := insRoom(peer.RoomId()).ActorsManager().GetAllPeerIds()
 		for _, item := range ids {
-			if item != id {
+			if item != peer.PeerId() {
 				fmt.Println(evn.Bytes())
 				gonode.Send(item, evn.Bytes())
 			}
@@ -357,9 +424,9 @@ func pubLeaveEvent(id string, actorNr int32) {
 	}
 }
 
-func pubDisconnectEvent(id string, actorNr int32) {
+func pubDisconnectEvent(peer *peers.ClientPeer, actorNr int32) {
 	if evn, err := gnbuffers.BuildBuffer(1024); err != nil {
-		handleErrors(id, 0, err)
+		handleErrors(peer.PeerId(), 0, err)
 		return
 	} else {
 		evn.PushByte(1)
@@ -375,9 +442,9 @@ func pubDisconnectEvent(id string, actorNr int32) {
 		evn.PushByte(paramcode.IsInactive)
 		evn.PushObject(true)
 
-		ids := insRoom().ActorsManager().GetAllPeerIds()
+		ids := insRoom(peer.RoomId()).ActorsManager().GetAllPeerIds()
 		for _, item := range ids {
-			if item != id {
+			if item != peer.PeerId() {
 				fmt.Println(evn.Bytes())
 				gonode.Send(item, evn.Bytes())
 			}
@@ -385,14 +452,14 @@ func pubDisconnectEvent(id string, actorNr int32) {
 	}
 }
 
-func pubJoinEvent(id string, opCode byte, parser *gnbuffers.GnParser, actorNr int32) {
+func pubJoinEvent(peer *peers.ClientPeer, opCode byte, parser *gnbuffers.GnParser, actorNr int32) {
 	if evn, err := gnbuffers.BuildBuffer(1024); err != nil {
-		handleErrors(id, opCode, err)
+		handleErrors(peer.PeerId(), opCode, err)
 		return
 	} else {
 
 		// handle the cache events publist
-		pubEventCache(id)
+		pubEventCache(peer)
 
 		evn.PushByte(1) // event
 		evn.PushByte(evncode.Join)
@@ -405,11 +472,11 @@ func pubJoinEvent(id string, opCode byte, parser *gnbuffers.GnParser, actorNr in
 		evn.PushByte(paramcode.ActorNr)
 		evn.PushObject(actorNr)
 
-		actorNrs := insRoom().ActorsManager().GetAllActorNrs()
+		actorNrs := insRoom(peer.RoomId()).ActorsManager().GetAllActorNrs()
 		evn.PushByte(paramcode.Actors)
 		evn.PushObject(actorNrs)
 
-		ids := insRoom().ActorsManager().GetAllPeerIds()
+		ids := insRoom(peer.RoomId()).ActorsManager().GetAllPeerIds()
 		for _, item := range ids {
 			//			fmt.Println(evn.Bytes())
 			gonode.Send(item, evn.Bytes())
@@ -418,6 +485,17 @@ func pubJoinEvent(id string, opCode byte, parser *gnbuffers.GnParser, actorNr in
 		fmt.Print("cache the join event:")
 		fmt.Print(" actorNr:")
 		fmt.Println(actorNr)
-		evnCache().AddEvent(actorNr, evncode.Join, evn.Bytes())
+		evnCache(peer).AddEvent(actorNr, evncode.Join, evn.Bytes())
+	}
+}
+
+func sendRemoveRoomState(roomId string) {
+	if buf, err := gnbuffers.BuildBuffer(256); err != nil {
+		handleErrors("lobby", servereventcode.RemoveGameState, err)
+		return
+	} else {
+		buf.PushByte(servereventcode.RemoveGameState)
+		buf.PushString(roomId)
+		gonode.Send("lobby", buf.Bytes())
 	}
 }

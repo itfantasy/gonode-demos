@@ -21,6 +21,9 @@ func (this *MasterServer) OnMsg(id string, msg []byte) {
 	fmt.Println(msg)
 	HandleMsg(id, msg)
 }
+func (this *MasterServer) OnServerMsg(id string, msg []byte) {
+	HandleServerMsg(id, msg)
+}
 func (this *MasterServer) OnReload(string) error {
 	return nil
 }

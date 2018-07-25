@@ -48,7 +48,7 @@ func (this *RoomBoot) Update() {
 
 }
 func (this *RoomBoot) OnConn(id string) {
-
+	this.server.OnConn(id)
 }
 func (this *RoomBoot) OnMsg(id string, msg []byte) {
 	if strings.Contains(id, "lobby") {

@@ -50,6 +50,9 @@ func (this *LobbyBoot) OnConn(id string) {
 func (this *LobbyBoot) OnMsg(id string, msg []byte) {
 	if strings.Contains(id, "room") {
 		// native logic for roomserver
+		// update the roomstate
+		// delete the roomstate
+		this.server.OnServerMsg(id, msg)
 	} else {
 		this.server.OnMsg(id, msg)
 	}

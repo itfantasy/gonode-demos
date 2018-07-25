@@ -31,6 +31,10 @@ func (this *Room) EventCache() *RoomEventCache {
 	return this.eventCache
 }
 
+func (this *Room) IsEmpty() bool {
+	return this.actorsManager.ActorsCount() <= 0
+}
+
 type RoomManager struct {
 	dict *stl.Dictionary
 }

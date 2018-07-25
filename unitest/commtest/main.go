@@ -8,6 +8,7 @@ import (
 
 	"github.com/itfantasy/gonode/components/logger"
 	"github.com/itfantasy/gonode/gnbuffers"
+	"github.com/itfantasy/gonode/utils/crypt"
 	"github.com/itfantasy/gonode/utils/stl"
 )
 
@@ -17,7 +18,15 @@ func main() {
 	//testTheGnBuffers()
 	//testTheGnBuffersObject()
 	//testTheReflectPackage()
-	testTheGnBuffersHashAndArray()
+	//testTheGnBuffersHashAndArray()
+	testTheCrypt()
+}
+
+func testTheCrypt() {
+	fmt.Println(crypt.Md5("aaa"))
+	fmt.Println(crypt.C32("aaa"))
+	fmt.Println(crypt.Guid())
+	fmt.Println(crypt.G32())
 }
 
 func testTheReflectPackage() {
