@@ -13,9 +13,6 @@ type MasterServer struct {
 func (this *MasterServer) Start() {
 
 }
-func (this *MasterServer) Update() {
-
-}
 func (this *MasterServer) OnMsg(id string, msg []byte) {
 	// receive the msg from client
 	fmt.Println(msg)
@@ -23,9 +20,6 @@ func (this *MasterServer) OnMsg(id string, msg []byte) {
 }
 func (this *MasterServer) OnServerMsg(id string, msg []byte) {
 	HandleServerMsg(id, msg)
-}
-func (this *MasterServer) OnReload(string) error {
-	return nil
 }
 func main() {
 	server := new(MasterServer)

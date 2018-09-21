@@ -1,10 +1,8 @@
 package room
 
 type RoomServer interface {
-	Start()  // when start
-	Update() // timer update
+	Start() // when start
 	OnConn(string)
 	OnMsg(string, []byte)
-	OnReload(string) error
 	OnClose(string)
 }

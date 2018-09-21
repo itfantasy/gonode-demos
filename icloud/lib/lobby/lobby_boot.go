@@ -17,7 +17,7 @@ type LobbyBoot struct {
 	server LobbyServer
 }
 
-func (this *LobbyBoot) SelfNodeInfo() (*gen_server.NodeInfo, error) {
+func (this *LobbyBoot) SelfInfo() (*gen_server.NodeInfo, error) {
 	conf, err := ini.Load(io.CurDir() + "conf.ini")
 	if err != nil {
 		return nil, err
@@ -34,24 +34,18 @@ func (this *LobbyBoot) SelfNodeInfo() (*gen_server.NodeInfo, error) {
 	nodeInfo.Net = conf.Get("net", "net")
 	return nodeInfo, nil
 }
-func (this *LobbyBoot) IsInterestedIn(string) bool {
+func (this *LobbyBoot) OnDetect(string) bool {
 	return false
 }
 func (this *LobbyBoot) Start() {
 	fmt.Println("node starting...")
 	this.server.Start()
 }
-func (this *LobbyBoot) Update() {
-
-}
 func (this *LobbyBoot) OnConn(id string) {
 	fmt.Println("new conn !! " + id)
 }
 func (this *LobbyBoot) OnMsg(id string, msg []byte) {
 	if strings.Contains(id, "room") {
-		// native logic for roomserver
-		// update the roomstate
-		// delete the roomstate
 		this.server.OnServerMsg(id, msg)
 	} else {
 		this.server.OnMsg(id, msg)
@@ -63,10 +57,7 @@ func (this *LobbyBoot) OnClose(id string) {
 func (this *LobbyBoot) OnShell(id string, msg string) {
 
 }
-func (this *LobbyBoot) OnReload(tag string) error {
-	return nil
-}
-func (this *LobbyBoot) CreateConnId() string {
+func (this *LobbyBoot) OnRanId() string {
 	return "cnt" + strconv.Itoa(rand.Intn(100000))
 }
 func (this *LobbyBoot) Initialize(server LobbyServer) {

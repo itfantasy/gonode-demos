@@ -27,6 +27,7 @@ func testTheCrypt() {
 	fmt.Println(crypt.C32("aaa"))
 	fmt.Println(crypt.Guid())
 	fmt.Println(crypt.G32())
+
 }
 
 func testTheReflectPackage() {

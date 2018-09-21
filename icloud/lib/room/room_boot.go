@@ -18,7 +18,7 @@ type RoomBoot struct {
 	server RoomServer
 }
 
-func (this *RoomBoot) SelfNodeInfo() (*gen_server.NodeInfo, error) {
+func (this *RoomBoot) SelfInfo() (*gen_server.NodeInfo, error) {
 	conf, err := ini.Load(io.CurDir() + "conf.ini")
 	if err != nil {
 		return nil, err
@@ -35,7 +35,7 @@ func (this *RoomBoot) SelfNodeInfo() (*gen_server.NodeInfo, error) {
 	nodeInfo.Net = conf.Get("net", "net")
 	return nodeInfo, nil
 }
-func (this *RoomBoot) IsInterestedIn(id string) bool {
+func (this *RoomBoot) OnDetect(id string) bool {
 	if id == "lobby" { // the room will auto find the lobby, and try to build a conn to the lobby
 		return true
 	}
@@ -43,9 +43,6 @@ func (this *RoomBoot) IsInterestedIn(id string) bool {
 }
 func (this *RoomBoot) Start() {
 	fmt.Println("node starting...")
-}
-func (this *RoomBoot) Update() {
-
 }
 func (this *RoomBoot) OnConn(id string) {
 	this.server.OnConn(id)
@@ -63,10 +60,7 @@ func (this *RoomBoot) OnClose(id string) {
 func (this *RoomBoot) OnShell(id string, msg string) {
 
 }
-func (this *RoomBoot) OnReload(tag string) error {
-	return nil
-}
-func (this *RoomBoot) CreateConnId() string {
+func (this *RoomBoot) OnRanId() string {
 	return "cnt" + strconv.Itoa(rand.Intn(100000))
 }
 func (this *RoomBoot) Initialize(server RoomServer) {
