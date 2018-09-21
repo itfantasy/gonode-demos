@@ -23,15 +23,17 @@ func (this *LobbyBoot) SelfInfo() (*gen_server.NodeInfo, error) {
 		return nil, err
 	}
 	nodeInfo := new(gen_server.NodeInfo)
-	nodeInfo.Tag = conf.Get("node", "tag")
+
 	nodeInfo.Id = conf.Get("node", "id")
 	nodeInfo.Url = conf.Get("node", "url")
+	nodeInfo.AutoDetect = conf.GetInt("node", "autodetect", 0) > 0
+	nodeInfo.Public = conf.GetInt("node", "public", 0) > 0
+
 	nodeInfo.RedUrl = conf.Get("redis", "url")
 	nodeInfo.RedPool = conf.GetInt("redis", "pool", 0)
 	nodeInfo.RedDB = conf.GetInt("redis", "db", 0)
 	nodeInfo.RedAuth = conf.Get("redis", "auth")
-	nodeInfo.AutoDetect = conf.GetInt("net", "autodetect", 0) > 0
-	nodeInfo.Net = conf.Get("net", "net")
+
 	return nodeInfo, nil
 }
 func (this *LobbyBoot) OnDetect(string) bool {
