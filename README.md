@@ -1,2 +1,2 @@
-# gonode_demo
-the simple demos of gonode
+# gonode_icloud
+a simple photon server realized by gonode
