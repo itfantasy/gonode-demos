@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	//	"github.com/itfantasy/gonode"
-	"github.com/itfantasy/gonode-demos/icloud/lib/room"
+	"github.com/itfantasy/gonode-icloud/icloud/behaviors/room"
 )
 
 type RoomServer struct {

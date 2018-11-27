@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	//	"github.com/itfantasy/gonode"
-	"github.com/itfantasy/gonode-demos/icloud/lib/lobby"
+	"github.com/itfantasy/gonode-icloud/icloud/behaviors/lobby"
 )
 
 type MasterServer struct {

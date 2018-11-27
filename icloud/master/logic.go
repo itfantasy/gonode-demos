@@ -9,11 +9,11 @@ import (
 	"github.com/itfantasy/gonode/gnbuffers"
 	//	"github.com/itfantasy/gonode/utils/json"
 	//"github.com/itfantasy/gonode/utils/stl"
-	"github.com/itfantasy/gonode-demos/icloud/lib/lobby"
-	"github.com/itfantasy/gonode-demos/icloud/opcode"
-	"github.com/itfantasy/gonode-demos/icloud/opcode/errorcode"
-	"github.com/itfantasy/gonode-demos/icloud/opcode/paramcode"
-	"github.com/itfantasy/gonode-demos/icloud/opcode/servereventcode"
+	"github.com/itfantasy/gonode-icloud/icloud/behaviors/lobby"
+	"github.com/itfantasy/gonode-icloud/icloud/opcode"
+	"github.com/itfantasy/gonode-icloud/icloud/opcode/errorcode"
+	"github.com/itfantasy/gonode-icloud/icloud/opcode/paramcode"
+	"github.com/itfantasy/gonode-icloud/icloud/opcode/servereventcode"
 )
 
 func HandleServerMsg(id string, msg []byte) {
