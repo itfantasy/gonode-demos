@@ -357,7 +357,7 @@ func handleRaiseEvent(peer *peers.ClientPeer, opCode byte, parser *gnbuffers.GnP
 		}
 
 		// handle the recvGroup
-		ids := gonode.Node().NetWorker().GetAllConnIds() // get the ids in the same room
+		ids := gonode.Node().GetAllConnIds() // get the ids in the same room
 		if recvGroup == recvgroup.MasterClient {
 			gonode.Send(peer.PeerId(), evn.Bytes())
 		} else if recvGroup == recvgroup.All {
