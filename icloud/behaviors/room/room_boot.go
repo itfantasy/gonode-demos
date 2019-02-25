@@ -18,7 +18,7 @@ type RoomBoot struct {
 	server RoomServer
 }
 
-func (this *RoomBoot) SelfInfo() (*gen_server.NodeInfo, error) {
+func (this *RoomBoot) Setup() (*gen_server.NodeInfo, error) {
 	conf, err := ini.Load(io.CurDir() + "conf.ini")
 	if err != nil {
 		return nil, err

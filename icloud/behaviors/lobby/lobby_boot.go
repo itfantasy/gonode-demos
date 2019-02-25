@@ -17,7 +17,7 @@ type LobbyBoot struct {
 	server LobbyServer
 }
 
-func (this *LobbyBoot) SelfInfo() (*gen_server.NodeInfo, error) {
+func (this *LobbyBoot) Setup() (*gen_server.NodeInfo, error) {
 	conf, err := ini.Load(io.CurDir() + "conf.ini")
 	if err != nil {
 		return nil, err
