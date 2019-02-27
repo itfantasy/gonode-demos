@@ -14,7 +14,22 @@ import (
 	"github.com/itfantasy/gonode-icloud/icloud/opcode/errorcode"
 	"github.com/itfantasy/gonode-icloud/icloud/opcode/paramcode"
 	"github.com/itfantasy/gonode-icloud/icloud/opcode/servereventcode"
+	"github.com/itfantasy/gonode/utils/strs"
 )
+
+var tempRoomUrl string = "192.168.99.100:35056"
+
+func HandleConn(id string) {
+	if strs.StartsWith(id, "room") {
+
+	}
+}
+
+func HandleClose(id string) {
+	if strs.StartsWith(id, "room") {
+
+	}
+}
 
 func HandleServerMsg(id string, msg []byte) {
 	parser := gnbuffers.BuildParser(msg, 0)
@@ -118,7 +133,7 @@ func handleCreateGame(id string, opCode byte, parser *gnbuffers.GnParser) {
 			buf.PushByte(paramcode.GameId)
 			buf.PushObject(gameId)
 			buf.PushByte(paramcode.Address)
-			buf.PushObject("192.168.10.85:5056")
+			buf.PushObject(tempRoomUrl)
 			gonode.Send(id, buf.Bytes())
 		}
 	}
@@ -135,7 +150,7 @@ func handleJoinGame(id string, opCode byte, parser *gnbuffers.GnParser) {
 		buf.PushByte(paramcode.GameId)
 		buf.PushObject("game1123")
 		buf.PushByte(paramcode.Address)
-		buf.PushObject("192.168.10.85:5056")
+		buf.PushObject(tempRoomUrl)
 		gonode.Send(id, buf.Bytes())
 	}
 }
@@ -158,7 +173,7 @@ func handleJoinRandomGame(id string, opCode byte, parser *gnbuffers.GnParser) {
 			buf.PushByte(paramcode.GameId)
 			buf.PushObject(gameId)
 			buf.PushByte(paramcode.Address)
-			buf.PushObject("192.168.10.85:5056")
+			buf.PushObject(tempRoomUrl)
 			gonode.Send(id, buf.Bytes())
 		}
 	}
