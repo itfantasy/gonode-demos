@@ -18,30 +18,25 @@ type RoomBoot struct {
 	server RoomServer
 }
 
-func (this *RoomBoot) Setup() (*gen_server.NodeInfo, error) {
+func (this *RoomBoot) Setup() *gen_server.NodeInfo {
 	conf, err := ini.Load(io.CurDir() + "conf.ini")
 	if err != nil {
-		return nil, err
+		fmt.Println(err)
+		return nil
 	}
 	nodeInfo := new(gen_server.NodeInfo)
 
 	nodeInfo.Id = conf.Get("node", "id")
 	nodeInfo.Url = conf.Get("node", "url")
-	nodeInfo.AutoDetect = conf.GetInt("node", "autodetect", 0) > 0
-	nodeInfo.Public = conf.GetInt("node", "public", 0) > 0
+	nodeInfo.PubUrl = conf.Get("node", "puburl")
+	nodeInfo.BackEnds = conf.Get("node", "backends")
 
-	nodeInfo.RedUrl = conf.Get("redis", "url")
-	nodeInfo.RedPool = conf.GetInt("redis", "pool", 0)
-	nodeInfo.RedDB = conf.GetInt("redis", "db", 0)
-	nodeInfo.RedAuth = conf.Get("redis", "auth")
+	nodeInfo.LogLevel = conf.Get("log", "loglevel")
+	nodeInfo.LogComp = conf.Get("log", "logcomp")
 
-	return nodeInfo, nil
-}
-func (this *RoomBoot) OnDetect(id string) bool {
-	if id == "lobby" { // the room will auto find the lobby, and try to build a conn to the lobby
-		return true
-	}
-	return false
+	nodeInfo.RegComp = conf.Get("reg", "regcomp")
+
+	return nodeInfo
 }
 func (this *RoomBoot) Start() {
 	fmt.Println("node starting...")
@@ -59,12 +54,7 @@ func (this *RoomBoot) OnMsg(id string, msg []byte) {
 func (this *RoomBoot) OnClose(id string) {
 	this.server.OnClose(id)
 }
-func (this *RoomBoot) OnShell(id string, msg string) {
 
-}
-func (this *RoomBoot) OnRanId() string {
-	return "cnt" + strconv.Itoa(rand.Intn(100000))
-}
 func (this *RoomBoot) Initialize(server RoomServer) {
 	this.server = server
 	gonode.Node().Initialize(this)

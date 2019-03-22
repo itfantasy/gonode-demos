@@ -26,19 +26,17 @@ func (this *LobbyBoot) Setup() (*gen_server.NodeInfo, error) {
 
 	nodeInfo.Id = conf.Get("node", "id")
 	nodeInfo.Url = conf.Get("node", "url")
-	nodeInfo.AutoDetect = conf.GetInt("node", "autodetect", 0) > 0
-	nodeInfo.Public = conf.GetInt("node", "public", 0) > 0
+	nodeInfo.PubUrl = conf.Get("node", "puburl")
+	nodeInfo.BackEnds = conf.Get("node", "backends")
 
-	nodeInfo.RedUrl = conf.Get("redis", "url")
-	nodeInfo.RedPool = conf.GetInt("redis", "pool", 0)
-	nodeInfo.RedDB = conf.GetInt("redis", "db", 0)
-	nodeInfo.RedAuth = conf.Get("redis", "auth")
+	nodeInfo.LogLevel = conf.Get("log", "loglevel")
+	nodeInfo.LogComp = conf.Get("log", "logcomp")
+
+	nodeInfo.RegComp = conf.Get("reg", "regcomp")
 
 	return nodeInfo, nil
 }
-func (this *LobbyBoot) OnDetect(string) bool {
-	return false
-}
+
 func (this *LobbyBoot) Start() {
 	fmt.Println("node starting...")
 	this.server.Start()
@@ -55,12 +53,6 @@ func (this *LobbyBoot) OnMsg(id string, msg []byte) {
 }
 func (this *LobbyBoot) OnClose(id string) {
 	fmt.Println("conn closed !! " + id)
-}
-func (this *LobbyBoot) OnShell(id string, msg string) {
-
-}
-func (this *LobbyBoot) OnRanId() string {
-	return "cnt" + strconv.Itoa(rand.Intn(100000))
 }
 func (this *LobbyBoot) Initialize(server LobbyServer) {
 	this.server = server
