@@ -2,25 +2,22 @@ package lobby
 
 import (
 	"fmt"
-	"math/rand"
-	"strconv"
 	"strings"
 
 	"github.com/itfantasy/gonode"
 	"github.com/itfantasy/gonode/behaviors/gen_server"
 	"github.com/itfantasy/gonode/utils/ini"
 	"github.com/itfantasy/gonode/utils/io"
-	//	"github.com/itfantasy/gonode/utils/timer"
 )
 
 type LobbyBoot struct {
 	server LobbyServer
 }
 
-func (this *LobbyBoot) Setup() (*gen_server.NodeInfo, error) {
+func (this *LobbyBoot) Setup() *gen_server.NodeInfo {
 	conf, err := ini.Load(io.CurDir() + "conf.ini")
 	if err != nil {
-		return nil, err
+		return nil
 	}
 	nodeInfo := new(gen_server.NodeInfo)
 
@@ -34,7 +31,7 @@ func (this *LobbyBoot) Setup() (*gen_server.NodeInfo, error) {
 
 	nodeInfo.RegComp = conf.Get("reg", "regcomp")
 
-	return nodeInfo, nil
+	return nodeInfo
 }
 
 func (this *LobbyBoot) Start() {

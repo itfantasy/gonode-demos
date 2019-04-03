@@ -2,16 +2,12 @@ package room
 
 import (
 	"fmt"
-	"math/rand"
-	"strconv"
 	"strings"
-	//"strings"
 
 	"github.com/itfantasy/gonode"
 	"github.com/itfantasy/gonode/behaviors/gen_server"
 	"github.com/itfantasy/gonode/utils/ini"
 	"github.com/itfantasy/gonode/utils/io"
-	//	"github.com/itfantasy/gonode/utils/timer"
 )
 
 type RoomBoot struct {
