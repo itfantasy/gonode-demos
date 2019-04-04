@@ -24,7 +24,7 @@ func (this *RoomBoot) Setup() *gen_server.NodeInfo {
 
 	nodeInfo.Id = conf.Get("node", "id")
 	nodeInfo.Url = conf.Get("node", "url")
-	nodeInfo.PubUrl = conf.Get("node", "puburl")
+	nodeInfo.Pub = conf.GetInt("node", "pub", 0) > 0
 	nodeInfo.BackEnds = conf.Get("node", "backends")
 
 	nodeInfo.LogLevel = conf.Get("log", "loglevel")

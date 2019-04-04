@@ -17,7 +17,7 @@ import (
 	"github.com/itfantasy/gonode/utils/strs"
 )
 
-var tempRoomUrl string = "192.168.99.100:35056"
+var tempRoomUrl string = "192.168.99.100:32056"
 
 func HandleConn(id string) {
 	if strs.StartsWith(id, "room") {
