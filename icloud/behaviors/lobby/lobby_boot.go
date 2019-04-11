@@ -31,6 +31,11 @@ func (this *LobbyBoot) Setup() *gen_server.NodeInfo {
 
 	nodeInfo.RegComp = conf.Get("reg", "regcomp")
 
+	redisConf := conf.Get("comps", "redis")
+	if err := RegisterCoreRedis(redisConf); err != nil {
+		return nil
+	}
+
 	return nodeInfo
 }
 
