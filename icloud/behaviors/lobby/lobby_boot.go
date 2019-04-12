@@ -40,7 +40,6 @@ func (this *LobbyBoot) Setup() *gen_server.NodeInfo {
 }
 
 func (this *LobbyBoot) Start() {
-	fmt.Println("node starting...")
 	this.server.Start()
 }
 func (this *LobbyBoot) OnConn(id string) {

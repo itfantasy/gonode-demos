@@ -35,7 +35,7 @@ func (this *RoomBoot) Setup() *gen_server.NodeInfo {
 	return nodeInfo
 }
 func (this *RoomBoot) Start() {
-	fmt.Println("node starting...")
+
 }
 func (this *RoomBoot) OnConn(id string) {
 	this.server.OnConn(id)
