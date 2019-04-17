@@ -3,7 +3,13 @@ package main
 import (
 	"fmt"
 
-	//	"github.com/itfantasy/gonode"
+	"strings"
+
+	"github.com/itfantasy/gonode"
+	"github.com/itfantasy/gonode/behaviors/gen_server"
+	"github.com/itfantasy/gonode/utils/ini"
+	"github.com/itfantasy/gonode/utils/io"
+
 	"github.com/itfantasy/gonode-icloud/icloud/behaviors/lobby"
 	"github.com/itfantasy/gonode-icloud/icloud/logics/master"
 )
@@ -11,19 +17,52 @@ import (
 type MasterServer struct {
 }
 
+func (this *MasterServer) Setup() *gen_server.NodeInfo {
+	conf, err := ini.Load(io.CurDir() + "conf.ini")
+	if err != nil {
+		return nil
+	}
+	nodeInfo := new(gen_server.NodeInfo)
+
+	nodeInfo.Id = conf.Get("node", "id")
+	nodeInfo.Url = conf.Get("node", "url")
+	nodeInfo.Pub = conf.GetInt("node", "pub", 0) > 0
+	nodeInfo.BackEnds = conf.Get("node", "backends")
+
+	nodeInfo.LogLevel = conf.Get("log", "loglevel")
+	nodeInfo.LogComp = conf.Get("log", "logcomp")
+
+	nodeInfo.RegComp = conf.Get("reg", "regcomp")
+
+	redisConf := conf.Get("comps", "redis")
+	if err := lobby.RegisterCoreRedis(redisConf); err != nil {
+		return nil
+	}
+
+	defaultRoomUrl := conf.Get("room", "defaulturl")
+	master.SetDefaultRoomUrl(defaultRoomUrl)
+
+	return nodeInfo
+}
+
 func (this *MasterServer) Start() {
 
 }
+func (this *MasterServer) OnConn(id string) {
+	fmt.Println("new conn !! " + id)
+}
 func (this *MasterServer) OnMsg(id string, msg []byte) {
-	// receive the msg from client
-	fmt.Println(msg)
-	master.HandleMsg(id, msg)
+	if strings.Contains(id, "room") {
+		master.HandleServerMsg(id, msg)
+	} else {
+		master.HandleMsg(id, msg)
+	}
 }
-func (this *MasterServer) OnServerMsg(id string, msg []byte) {
-	master.HandleServerMsg(id, msg)
+func (this *MasterServer) OnClose(id string) {
+	fmt.Println("conn closed !! " + id)
 }
+
 func main() {
 	server := new(MasterServer)
-	boot := new(lobby.LobbyBoot)
-	boot.Initialize(server)
+	gonode.Node().Initialize(server)
 }
