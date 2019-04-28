@@ -34,7 +34,7 @@ func HandleConn(id string) {
 func HandleMsg(id string, msg []byte) {
 	parser := gnbuffers.BuildParser(msg, 0)
 	if opCode, err := parser.Byte(); err != nil {
-		gonode.Node().Logger().Error(err.Error())
+		gonode.LogError(err)
 		return
 	} else {
 		peer, ok := insPeerManager().GetClientPeer(id)
@@ -357,7 +357,7 @@ func handleRaiseEvent(peer *peers.ClientPeer, opCode byte, parser *gnbuffers.GnP
 		}
 
 		// handle the recvGroup
-		ids := gonode.Node().GetAllConnIds() // get the ids in the same room
+		ids := gonode.AllConnIds() // get the ids in the same room
 		if recvGroup == recvgroup.MasterClient {
 			gonode.Send(peer.PeerId(), evn.Bytes())
 		} else if recvGroup == recvgroup.All {

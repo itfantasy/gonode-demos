@@ -64,5 +64,6 @@ func (this *MasterServer) OnClose(id string) {
 
 func main() {
 	server := new(MasterServer)
-	gonode.Node().Initialize(server)
+	gonode.Launch(server)
+	gonode.Sync()
 }

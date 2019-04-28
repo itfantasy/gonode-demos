@@ -38,7 +38,7 @@ func HandleClose(id string) {
 func HandleServerMsg(id string, msg []byte) {
 	parser := gnbuffers.BuildParser(msg, 0)
 	if opCode, err := parser.Byte(); err != nil {
-		gonode.Node().Logger().Error(err.Error())
+		gonode.LogError(err)
 		return
 	} else {
 		switch opCode {
@@ -70,7 +70,7 @@ func handleRemoveGameState(id string, opCode byte, parser *gnbuffers.GnParser) {
 func HandleMsg(id string, msg []byte) {
 	parser := gnbuffers.BuildParser(msg, 0)
 	if opCode, err := parser.Byte(); err != nil {
-		gonode.Node().Logger().Error(err.Error())
+		gonode.LogError(err)
 		return
 	} else {
 		switch opCode {
@@ -94,7 +94,7 @@ func HandleMsg(id string, msg []byte) {
 }
 
 func handleErrors(id string, opCode byte, err error) {
-	gonode.Error(err.Error())
+	gonode.LogError(err)
 }
 
 var _insLobby *lobby.Lobby = nil
