@@ -52,7 +52,6 @@ func (this *RoomServer) OnClose(id string) {
 }
 
 func main() {
-	server := new(RoomServer)
-	gonode.Launch(server)
-	gonode.Sync()
+	gonode.Bind(new(RoomServer))
+	gonode.Launch()
 }

@@ -63,7 +63,6 @@ func (this *MasterServer) OnClose(id string) {
 }
 
 func main() {
-	server := new(MasterServer)
-	gonode.Launch(server)
-	gonode.Sync()
+	gonode.Bind(new(MasterServer))
+	gonode.Launch()
 }
