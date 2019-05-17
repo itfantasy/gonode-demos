@@ -7,7 +7,7 @@ import (
 	//	"fmt"
 
 	"github.com/itfantasy/gonode"
-	"github.com/itfantasy/gonode/gnbuffers"
+	"github.com/itfantasy/gonode/core/binbuf"
 	//	"github.com/itfantasy/gonode/utils/json"
 	"github.com/itfantasy/gonode-icloud/icloud/opcode"
 	"github.com/itfantasy/gonode-icloud/icloud/opcode/actorparam"
@@ -32,7 +32,7 @@ func HandleConn(id string) {
 }
 
 func HandleMsg(id string, msg []byte) {
-	parser := gnbuffers.BuildParser(msg, 0)
+	parser := binbuf.BuildParser(msg, 0)
 	if opCode, err := parser.Byte(); err != nil {
 		gonode.LogError(err)
 		return
@@ -128,8 +128,8 @@ func handleErrors(id string, opCode byte, err error) {
 	fmt.Println(err)
 }
 
-func handleSetProperties(peer *peers.ClientPeer, opCode byte, parser *gnbuffers.GnParser) {
-	if buf, err := gnbuffers.BuildBuffer(256); err != nil {
+func handleSetProperties(peer *peers.ClientPeer, opCode byte, parser *binbuf.BinParser) {
+	if buf, err := binbuf.BuildBuffer(256); err != nil {
 		handleErrors(peer.PeerId(), opCode, err)
 		return
 	} else {
@@ -140,8 +140,8 @@ func handleSetProperties(peer *peers.ClientPeer, opCode byte, parser *gnbuffers.
 	}
 }
 
-func handleAuthenticate(peer *peers.ClientPeer, opCode byte, parser *gnbuffers.GnParser) {
-	if buf, err := gnbuffers.BuildBuffer(256); err != nil {
+func handleAuthenticate(peer *peers.ClientPeer, opCode byte, parser *binbuf.BinParser) {
+	if buf, err := binbuf.BuildBuffer(256); err != nil {
 		handleErrors(peer.PeerId(), opCode, err)
 		return
 	} else {
@@ -152,8 +152,8 @@ func handleAuthenticate(peer *peers.ClientPeer, opCode byte, parser *gnbuffers.G
 	}
 }
 
-func handleCreateGame(peer *peers.ClientPeer, opCode byte, parser *gnbuffers.GnParser) {
-	if buf, err := gnbuffers.BuildBuffer(256); err != nil {
+func handleCreateGame(peer *peers.ClientPeer, opCode byte, parser *binbuf.BinParser) {
+	if buf, err := binbuf.BuildBuffer(256); err != nil {
 		handleErrors(peer.PeerId(), opCode, err)
 		return
 	} else {
@@ -216,8 +216,8 @@ func handleCreateGame(peer *peers.ClientPeer, opCode byte, parser *gnbuffers.GnP
 	}
 }
 
-func handleJoinGame(peer *peers.ClientPeer, opCode byte, parser *gnbuffers.GnParser) {
-	if buf, err := gnbuffers.BuildBuffer(1024); err != nil {
+func handleJoinGame(peer *peers.ClientPeer, opCode byte, parser *binbuf.BinParser) {
+	if buf, err := binbuf.BuildBuffer(1024); err != nil {
 		handleErrors(peer.PeerId(), opCode, err)
 		return
 	} else {
@@ -277,9 +277,9 @@ func handleJoinGame(peer *peers.ClientPeer, opCode byte, parser *gnbuffers.GnPar
 	}
 }
 
-func handleRaiseEvent(peer *peers.ClientPeer, opCode byte, parser *gnbuffers.GnParser) {
+func handleRaiseEvent(peer *peers.ClientPeer, opCode byte, parser *binbuf.BinParser) {
 	// send self resp
-	if buf, err := gnbuffers.BuildBuffer(1024); err != nil {
+	if buf, err := binbuf.BuildBuffer(1024); err != nil {
 		handleErrors(peer.PeerId(), opCode, err)
 		return
 	} else {
@@ -290,7 +290,7 @@ func handleRaiseEvent(peer *peers.ClientPeer, opCode byte, parser *gnbuffers.GnP
 	}
 
 	// pub the event to others
-	if evn, err := gnbuffers.BuildBuffer(1024); err != nil {
+	if evn, err := binbuf.BuildBuffer(1024); err != nil {
 		handleErrors(peer.PeerId(), opCode, err)
 		return
 	} else {
@@ -397,7 +397,7 @@ func pubEventCache(peer *peers.ClientPeer) {
 }
 
 func pubLeaveEvent(peer *peers.ClientPeer, actorNr int32) {
-	if evn, err := gnbuffers.BuildBuffer(1024); err != nil {
+	if evn, err := binbuf.BuildBuffer(1024); err != nil {
 		handleErrors(peer.PeerId(), 0, err)
 		return
 	} else {
@@ -425,7 +425,7 @@ func pubLeaveEvent(peer *peers.ClientPeer, actorNr int32) {
 }
 
 func pubDisconnectEvent(peer *peers.ClientPeer, actorNr int32) {
-	if evn, err := gnbuffers.BuildBuffer(1024); err != nil {
+	if evn, err := binbuf.BuildBuffer(1024); err != nil {
 		handleErrors(peer.PeerId(), 0, err)
 		return
 	} else {
@@ -452,8 +452,8 @@ func pubDisconnectEvent(peer *peers.ClientPeer, actorNr int32) {
 	}
 }
 
-func pubJoinEvent(peer *peers.ClientPeer, opCode byte, parser *gnbuffers.GnParser, actorNr int32) {
-	if evn, err := gnbuffers.BuildBuffer(1024); err != nil {
+func pubJoinEvent(peer *peers.ClientPeer, opCode byte, parser *binbuf.BinParser, actorNr int32) {
+	if evn, err := binbuf.BuildBuffer(1024); err != nil {
 		handleErrors(peer.PeerId(), opCode, err)
 		return
 	} else {
@@ -490,7 +490,7 @@ func pubJoinEvent(peer *peers.ClientPeer, opCode byte, parser *gnbuffers.GnParse
 }
 
 func sendRemoveRoomState(roomId string) {
-	if buf, err := gnbuffers.BuildBuffer(256); err != nil {
+	if buf, err := binbuf.BuildBuffer(256); err != nil {
 		handleErrors("lobby", servereventcode.RemoveGameState, err)
 		return
 	} else {

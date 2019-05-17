@@ -6,7 +6,7 @@ import (
 	//"fmt"
 
 	"github.com/itfantasy/gonode"
-	"github.com/itfantasy/gonode/gnbuffers"
+	"github.com/itfantasy/gonode/core/binbuf"
 	//	"github.com/itfantasy/gonode/utils/json"
 	//"github.com/itfantasy/gonode/utils/stl"
 	"github.com/itfantasy/gonode-icloud/icloud/behaviors/lobby"
@@ -36,7 +36,7 @@ func HandleClose(id string) {
 }
 
 func HandleServerMsg(id string, msg []byte) {
-	parser := gnbuffers.BuildParser(msg, 0)
+	parser := binbuf.BuildParser(msg, 0)
 	if opCode, err := parser.Byte(); err != nil {
 		gonode.LogError(err)
 		return
@@ -54,11 +54,11 @@ func HandleServerMsg(id string, msg []byte) {
 	}
 }
 
-func handleUpdateGameState(id string, opCode byte, parser *gnbuffers.GnParser) {
+func handleUpdateGameState(id string, opCode byte, parser *binbuf.BinParser) {
 
 }
 
-func handleRemoveGameState(id string, opCode byte, parser *gnbuffers.GnParser) {
+func handleRemoveGameState(id string, opCode byte, parser *binbuf.BinParser) {
 	gameId, err := parser.String()
 	if err != nil {
 		handleErrors(id, opCode, err)
@@ -68,7 +68,7 @@ func handleRemoveGameState(id string, opCode byte, parser *gnbuffers.GnParser) {
 }
 
 func HandleMsg(id string, msg []byte) {
-	parser := gnbuffers.BuildParser(msg, 0)
+	parser := binbuf.BuildParser(msg, 0)
 	if opCode, err := parser.Byte(); err != nil {
 		gonode.LogError(err)
 		return
@@ -106,8 +106,8 @@ func insLobby() *lobby.Lobby {
 	return _insLobby
 }
 
-func handleAuthenticate(id string, opCode byte, parser *gnbuffers.GnParser) {
-	if buf, err := gnbuffers.BuildBuffer(256); err != nil {
+func handleAuthenticate(id string, opCode byte, parser *binbuf.BinParser) {
+	if buf, err := binbuf.BuildBuffer(256); err != nil {
 		handleErrors(id, opCode, err)
 		return
 	} else {
@@ -118,8 +118,8 @@ func handleAuthenticate(id string, opCode byte, parser *gnbuffers.GnParser) {
 	}
 }
 
-func handleCreateGame(id string, opCode byte, parser *gnbuffers.GnParser) {
-	if buf, err := gnbuffers.BuildBuffer(256); err != nil {
+func handleCreateGame(id string, opCode byte, parser *binbuf.BinParser) {
+	if buf, err := binbuf.BuildBuffer(256); err != nil {
 		handleErrors(id, opCode, err)
 		return
 	} else {
@@ -143,8 +143,8 @@ func handleCreateGame(id string, opCode byte, parser *gnbuffers.GnParser) {
 	}
 }
 
-func handleJoinGame(id string, opCode byte, parser *gnbuffers.GnParser) {
-	if buf, err := gnbuffers.BuildBuffer(256); err != nil {
+func handleJoinGame(id string, opCode byte, parser *binbuf.BinParser) {
+	if buf, err := binbuf.BuildBuffer(256); err != nil {
 		handleErrors(id, opCode, err)
 		return
 	} else {
@@ -159,8 +159,8 @@ func handleJoinGame(id string, opCode byte, parser *gnbuffers.GnParser) {
 	}
 }
 
-func handleJoinRandomGame(id string, opCode byte, parser *gnbuffers.GnParser) {
-	if buf, err := gnbuffers.BuildBuffer(256); err != nil {
+func handleJoinRandomGame(id string, opCode byte, parser *binbuf.BinParser) {
+	if buf, err := binbuf.BuildBuffer(256); err != nil {
 		handleErrors(id, opCode, err)
 		return
 	} else {
