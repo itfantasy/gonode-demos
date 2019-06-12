@@ -5,10 +5,11 @@ import (
 	"strings"
 
 	"github.com/itfantasy/gonode"
-	"github.com/itfantasy/gonode-icloud/icloud/logics/game"
 	"github.com/itfantasy/gonode/behaviors/gen_server"
 	"github.com/itfantasy/gonode/utils/ini"
 	"github.com/itfantasy/gonode/utils/io"
+
+	"github.com/itfantasy/gonode-icloud/icloud/logics/game"
 )
 
 type RoomServer struct {
@@ -47,7 +48,7 @@ func (this *RoomServer) OnMsg(id string, msg []byte) {
 		game.HandleMsg(id, msg)
 	}
 }
-func (this *RoomServer) OnClose(id string) {
+func (this *RoomServer) OnClose(id string, reason error) {
 	game.HandleClose(id)
 }
 

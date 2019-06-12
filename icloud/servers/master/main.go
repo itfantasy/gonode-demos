@@ -58,7 +58,7 @@ func (this *MasterServer) OnMsg(id string, msg []byte) {
 		master.HandleMsg(id, msg)
 	}
 }
-func (this *MasterServer) OnClose(id string) {
+func (this *MasterServer) OnClose(id string, reason error) {
 	fmt.Println("conn closed !! " + id)
 }
 
