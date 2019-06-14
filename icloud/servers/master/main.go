@@ -20,6 +20,7 @@ type MasterServer struct {
 func (this *MasterServer) Setup() *gen_server.NodeInfo {
 	conf, err := ini.Load(io.CurDir() + "conf.ini")
 	if err != nil {
+		fmt.Println(err)
 		return nil
 	}
 	nodeInfo := new(gen_server.NodeInfo)
@@ -36,6 +37,7 @@ func (this *MasterServer) Setup() *gen_server.NodeInfo {
 
 	redisConf := conf.Get("comps", "redis")
 	if err := lobby.RegisterCoreRedis(redisConf); err != nil {
+		fmt.Println(err)
 		return nil
 	}
 
