@@ -107,78 +107,65 @@ func insLobby() *lobby.Lobby {
 }
 
 func handleAuthenticate(id string, opCode byte, parser *binbuf.BinParser) {
-	if buf, err := binbuf.BuildBuffer(256); err != nil {
-		handleErrors(id, opCode, err)
-		return
-	} else {
-		buf.PushByte(0)      // resp
-		buf.PushShort(0)     // retcode
-		buf.PushByte(opCode) // opcode
-		gonode.Send(id, buf.Bytes())
-	}
+	buf := binbuf.BuildBuffer(256)
+	buf.PushByte(0)      // resp
+	buf.PushShort(0)     // retcode
+	buf.PushByte(opCode) // opcode
+	gonode.Send(id, buf.Bytes())
 }
 
 func handleCreateGame(id string, opCode byte, parser *binbuf.BinParser) {
-	if buf, err := binbuf.BuildBuffer(256); err != nil {
+	buf := binbuf.BuildBuffer(256)
+	gameId := lobby.GenerateRoomId()
+	if ret, err := insLobby().CreateRoomState(gameId, ""); err != nil {
 		handleErrors(id, opCode, err)
 		return
-	} else {
-		gameId := lobby.GenerateRoomId()
-		if ret, err := insLobby().CreateRoomState(gameId, ""); err != nil {
-			handleErrors(id, opCode, err)
-			return
-		} else if !ret {
-			handleErrors(id, opCode, errors.New("cannot create a roomstate:"+gameId))
-			return
-		} else {
-			buf.PushByte(0)
-			buf.PushShort(errorcode.Ok)
-			buf.PushByte(opCode)
-			buf.PushByte(paramcode.GameId)
-			buf.PushObject(gameId)
-			buf.PushByte(paramcode.Address)
-			buf.PushObject(tempRoomUrl)
-			gonode.Send(id, buf.Bytes())
-		}
-	}
-}
-
-func handleJoinGame(id string, opCode byte, parser *binbuf.BinParser) {
-	if buf, err := binbuf.BuildBuffer(256); err != nil {
-		handleErrors(id, opCode, err)
+	} else if !ret {
+		handleErrors(id, opCode, errors.New("cannot create a roomstate:"+gameId))
 		return
 	} else {
 		buf.PushByte(0)
 		buf.PushShort(errorcode.Ok)
 		buf.PushByte(opCode)
 		buf.PushByte(paramcode.GameId)
-		buf.PushObject("game1123")
+		buf.PushObject(gameId)
 		buf.PushByte(paramcode.Address)
 		buf.PushObject(tempRoomUrl)
 		gonode.Send(id, buf.Bytes())
 	}
+
+}
+
+func handleJoinGame(id string, opCode byte, parser *binbuf.BinParser) {
+	buf := binbuf.BuildBuffer(256)
+	buf.PushByte(0)
+	buf.PushShort(errorcode.Ok)
+	buf.PushByte(opCode)
+	buf.PushByte(paramcode.GameId)
+	buf.PushObject("game1123")
+	buf.PushByte(paramcode.Address)
+	buf.PushObject(tempRoomUrl)
+	gonode.Send(id, buf.Bytes())
+
 }
 
 func handleJoinRandomGame(id string, opCode byte, parser *binbuf.BinParser) {
-	if buf, err := binbuf.BuildBuffer(256); err != nil {
-		handleErrors(id, opCode, err)
-		return
+	buf := binbuf.BuildBuffer(256)
+	gameId, exist := insLobby().RandomRoomStateId()
+	if !exist {
+		buf.PushByte(0)
+		buf.PushShort(errorcode.NoMatchFound)
+		buf.PushByte(opCode)
+		gonode.Send(id, buf.Bytes())
 	} else {
-		gameId, exist := insLobby().RandomRoomStateId()
-		if !exist {
-			buf.PushByte(0)
-			buf.PushShort(errorcode.NoMatchFound)
-			buf.PushByte(opCode)
-			gonode.Send(id, buf.Bytes())
-		} else {
-			buf.PushByte(0)
-			buf.PushShort(errorcode.Ok)
-			buf.PushByte(opCode)
-			buf.PushByte(paramcode.GameId)
-			buf.PushObject(gameId)
-			buf.PushByte(paramcode.Address)
-			buf.PushObject(tempRoomUrl)
-			gonode.Send(id, buf.Bytes())
-		}
+		buf.PushByte(0)
+		buf.PushShort(errorcode.Ok)
+		buf.PushByte(opCode)
+		buf.PushByte(paramcode.GameId)
+		buf.PushObject(gameId)
+		buf.PushByte(paramcode.Address)
+		buf.PushObject(tempRoomUrl)
+		gonode.Send(id, buf.Bytes())
 	}
+
 }
