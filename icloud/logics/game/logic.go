@@ -33,8 +33,8 @@ func HandleConn(id string) {
 
 func HandleMsg(id string, msg []byte) {
 	parser := binbuf.BuildParser(msg, 0)
-	if opCode, err := parser.Byte(); err != nil {
-		gonode.LogError(err)
+	if opCode := parser.Byte(); parser.Error() != nil {
+		gonode.LogError(parser.Error())
 		return
 	} else {
 		peer, ok := insPeerManager().GetClientPeer(id)
@@ -158,8 +158,8 @@ func handleCreateGame(peer *peers.ClientPeer, opCode byte, parser *binbuf.BinPar
 		return
 	} else {
 		parser.Byte() // 255
-		_roomId, err := parser.Object()
-		if err != nil {
+		_roomId := parser.Object()
+		if parser.Error() != nil {
 			handleErrors(peer.PeerId(), opCode, err)
 			return
 		}
@@ -223,9 +223,9 @@ func handleJoinGame(peer *peers.ClientPeer, opCode byte, parser *binbuf.BinParse
 	} else {
 
 		parser.Byte() // 255
-		_roomId, err := parser.Object()
-		if err != nil {
-			handleErrors(peer.PeerId(), opCode, err)
+		_roomId := parser.Object()
+		if parser.Error() != nil {
+			handleErrors(peer.PeerId(), opCode, parser.Error())
 			return
 		}
 		roomId, ok := _roomId.(string)
@@ -300,9 +300,9 @@ func handleRaiseEvent(peer *peers.ClientPeer, opCode byte, parser *binbuf.BinPar
 			return
 		}
 
-		parser.Byte()                 // ParameterCode.Code
-		parser.Byte()                 // gntypes.Byte
-		eventCode, _ := parser.Byte() // eventCode
+		parser.Byte()              // ParameterCode.Code
+		parser.Byte()              // gntypes.Byte
+		eventCode := parser.Byte() // eventCode
 
 		evn.PushByte(1) // event
 		evn.PushByte(eventCode)
@@ -318,24 +318,24 @@ func handleRaiseEvent(peer *peers.ClientPeer, opCode byte, parser *binbuf.BinPar
 		var cacheOp byte = cacheop.DoNotCache
 
 		for {
-			paramCode, err := parser.Byte()
-			if err != nil {
-				handleErrors(peer.PeerId(), opCode, err)
+			paramCode := parser.Byte()
+			if parser.Error() != nil {
+				handleErrors(peer.PeerId(), opCode, parser.Error())
 				return
 			}
 			//fmt.Print("paramCode:")
 			//fmt.Println(paramCode)
 			if paramCode == paramcode.ReceiverGroup { // ReceiverGroup
-				if oRecvGroup, err := parser.Object(); err != nil {
-					handleErrors(peer.PeerId(), opCode, err)
+				if oRecvGroup := parser.Object(); parser.Error() != nil {
+					handleErrors(peer.PeerId(), opCode, parser.Error())
 					return
 				} else {
 					recvGroup = oRecvGroup.(byte)
 				}
 				//parser.Byte() // Data
 			} else if paramCode == paramcode.Cache { // the event which will be cached
-				if oCacheOp, err := parser.Object(); err != nil {
-					handleErrors(peer.PeerId(), opCode, err)
+				if oCacheOp := parser.Object(); parser.Error() != nil {
+					handleErrors(peer.PeerId(), opCode, parser.Error())
 					return
 				} else {
 					cacheOp = oCacheOp.(byte)

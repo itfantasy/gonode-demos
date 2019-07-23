@@ -37,8 +37,8 @@ func HandleClose(id string) {
 
 func HandleServerMsg(id string, msg []byte) {
 	parser := binbuf.BuildParser(msg, 0)
-	if opCode, err := parser.Byte(); err != nil {
-		gonode.LogError(err)
+	if opCode := parser.Byte(); parser.Error() != nil {
+		gonode.LogError(parser.Error())
 		return
 	} else {
 		switch opCode {
@@ -59,9 +59,9 @@ func handleUpdateGameState(id string, opCode byte, parser *binbuf.BinParser) {
 }
 
 func handleRemoveGameState(id string, opCode byte, parser *binbuf.BinParser) {
-	gameId, err := parser.String()
-	if err != nil {
-		handleErrors(id, opCode, err)
+	gameId := parser.String()
+	if parser.Error() != nil {
+		handleErrors(id, opCode, parser.Error())
 		return
 	}
 	insLobby().RemoveRoomState(gameId)
@@ -69,8 +69,8 @@ func handleRemoveGameState(id string, opCode byte, parser *binbuf.BinParser) {
 
 func HandleMsg(id string, msg []byte) {
 	parser := binbuf.BuildParser(msg, 0)
-	if opCode, err := parser.Byte(); err != nil {
-		gonode.LogError(err)
+	if opCode := parser.Byte(); parser.Error() != nil {
+		gonode.LogError(parser.Error())
 		return
 	} else {
 		switch opCode {
