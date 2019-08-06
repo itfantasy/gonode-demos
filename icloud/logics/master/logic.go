@@ -87,7 +87,7 @@ func HandleMsg(id string, msg []byte) {
 			handleJoinRandomGame(id, opCode, parser)
 			break
 		default:
-			gonode.Send(id, msg)
+			//gonode.Send(id, msg)
 			break
 		}
 	}
