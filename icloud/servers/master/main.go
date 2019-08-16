@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 
-	"strings"
-
 	"github.com/itfantasy/gonode"
 	"github.com/itfantasy/gonode/behaviors/gen_server"
 	"github.com/itfantasy/gonode/utils/ini"
@@ -54,7 +52,7 @@ func (this *MasterServer) OnConn(id string) {
 	fmt.Println("new conn !! " + id)
 }
 func (this *MasterServer) OnMsg(id string, msg []byte) {
-	if strings.Contains(id, "room") {
+	if gonode.Label(id) == "room" {
 		master.HandleServerMsg(id, msg)
 	} else {
 		master.HandleMsg(id, msg)

@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/itfantasy/gonode"
 	"github.com/itfantasy/gonode/behaviors/gen_server"
@@ -42,7 +41,7 @@ func (this *RoomServer) OnConn(id string) {
 	game.HandleConn(id)
 }
 func (this *RoomServer) OnMsg(id string, msg []byte) {
-	if strings.Contains(id, "lobby") {
+	if gonode.Label(id) == "lobby" {
 		// native logic for lobbyserver
 	} else {
 		game.HandleMsg(id, msg)
