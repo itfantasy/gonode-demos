@@ -9,6 +9,7 @@ import (
 	"github.com/itfantasy/gonode/utils/io"
 
 	"github.com/itfantasy/gonode-icloud/icloud/logics/game"
+	"github.com/itfantasy/gonode-toolkit/toolkit/gen_room"
 )
 
 type RoomServer struct {
@@ -20,35 +21,32 @@ func (this *RoomServer) Setup() *gen_server.NodeInfo {
 		fmt.Println(err)
 		return nil
 	}
-	nodeInfo := new(gen_server.NodeInfo)
-
-	nodeInfo.Id = conf.Get("node", "id")
-	nodeInfo.Url = conf.Get("node", "url")
-	nodeInfo.Pub = conf.GetInt("node", "pub", 0) > 0
-	nodeInfo.BackEnds = conf.Get("node", "backends")
-
-	nodeInfo.LogLevel = conf.Get("log", "loglevel")
-	nodeInfo.LogComp = conf.Get("log", "logcomp")
-
-	nodeInfo.RegComp = conf.Get("reg", "regcomp")
-
-	return nodeInfo
+	info := new(gen_room.RoomServerInfo)
+	info.Id = conf.Get("node", "id")
+	info.Url = conf.Get("node", "url")
+	info.LogLevel = conf.Get("log", "loglevel")
+	info.LogComp = conf.Get("log", "logcomp")
+	info.RegComp = conf.Get("reg", "regcomp")
+	return info.ExpandToNodeInfo()
 }
 func (this *RoomServer) Start() {
 
 }
 func (this *RoomServer) OnConn(id string) {
-	game.HandleConn(id)
+	if gonode.IsCntId(id) {
+		game.HandleConn(id)
+	}
 }
 func (this *RoomServer) OnMsg(id string, msg []byte) {
-	if gonode.Label(id) == "lobby" {
-		// native logic for lobbyserver
-	} else {
+	if gonode.IsCntId(id) {
 		game.HandleMsg(id, msg)
 	}
 }
 func (this *RoomServer) OnClose(id string, reason error) {
-	game.HandleClose(id)
+	fmt.Println("node[" + id + "] has been closed! " + reason.Error())
+	if gonode.IsCntId(id) {
+		game.HandleClose(id)
+	}
 }
 
 func main() {

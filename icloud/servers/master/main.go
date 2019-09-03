@@ -8,8 +8,8 @@ import (
 	"github.com/itfantasy/gonode/utils/ini"
 	"github.com/itfantasy/gonode/utils/io"
 
-	"github.com/itfantasy/gonode-icloud/icloud/behaviors/lobby"
 	"github.com/itfantasy/gonode-icloud/icloud/logics/master"
+	"github.com/itfantasy/gonode-toolkit/toolkit/gen_lobby"
 )
 
 type MasterServer struct {
@@ -21,28 +21,20 @@ func (this *MasterServer) Setup() *gen_server.NodeInfo {
 		fmt.Println(err)
 		return nil
 	}
-	nodeInfo := new(gen_server.NodeInfo)
+	info := new(gen_lobby.LobbyServerInfo)
 
-	nodeInfo.Id = conf.Get("node", "id")
-	nodeInfo.Url = conf.Get("node", "url")
-	nodeInfo.Pub = conf.GetInt("node", "pub", 0) > 0
-	nodeInfo.BackEnds = conf.Get("node", "backends")
+	info.Id = conf.Get("node", "id")
+	info.Url = conf.Get("node", "url")
 
-	nodeInfo.LogLevel = conf.Get("log", "loglevel")
-	nodeInfo.LogComp = conf.Get("log", "logcomp")
+	info.LogLevel = conf.Get("log", "loglevel")
+	info.LogComp = conf.Get("log", "logcomp")
 
-	nodeInfo.RegComp = conf.Get("reg", "regcomp")
-
-	redisConf := conf.Get("comps", "redis")
-	if err := lobby.RegisterCoreRedis(redisConf); err != nil {
-		fmt.Println(err)
-		return nil
-	}
+	info.RegComp = conf.Get("reg", "regcomp")
 
 	defaultRoomUrl := conf.Get("room", "defaulturl")
 	master.SetDefaultRoomUrl(defaultRoomUrl)
 
-	return nodeInfo
+	return info.ExpandToNodeInfo()
 }
 
 func (this *MasterServer) Start() {
@@ -54,7 +46,7 @@ func (this *MasterServer) OnConn(id string) {
 func (this *MasterServer) OnMsg(id string, msg []byte) {
 	if gonode.Label(id) == "room" {
 		master.HandleServerMsg(id, msg)
-	} else {
+	} else if gonode.IsCntId(id) {
 		master.HandleMsg(id, msg)
 	}
 }

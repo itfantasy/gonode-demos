@@ -2,13 +2,10 @@ package game
 
 import (
 	"errors"
-	"fmt"
-	//	"strconv"
-	//	"fmt"
 
 	"github.com/itfantasy/gonode"
 	"github.com/itfantasy/gonode/core/binbuf"
-	//	"github.com/itfantasy/gonode/utils/json"
+
 	"github.com/itfantasy/gonode-icloud/icloud/opcode"
 	"github.com/itfantasy/gonode-icloud/icloud/opcode/actorparam"
 	"github.com/itfantasy/gonode-icloud/icloud/opcode/cacheop"
@@ -17,18 +14,13 @@ import (
 	"github.com/itfantasy/gonode-icloud/icloud/opcode/gameparam"
 	"github.com/itfantasy/gonode-icloud/icloud/opcode/paramcode"
 	"github.com/itfantasy/gonode-icloud/icloud/opcode/recvgroup"
-	"github.com/itfantasy/gonode-icloud/icloud/opcode/servereventcode"
 	"github.com/itfantasy/gonode/utils/stl"
-	"github.com/itfantasy/gonode/utils/strs"
 
-	"github.com/itfantasy/gonode-icloud/icloud/behaviors/room"
-	"github.com/itfantasy/gonode-icloud/icloud/peers"
+	"github.com/itfantasy/gonode-toolkit/toolkit/gen_room"
 )
 
 func HandleConn(id string) {
-	if strs.StartsWith(id, "cnt") {
-		insPeerManager().AddPeer(peers.NewClientPeer(id))
-	}
+	gen_room.AddPeer(gen_room.NewClientPeer(id))
 }
 
 func HandleMsg(id string, msg []byte) {
@@ -37,7 +29,7 @@ func HandleMsg(id string, msg []byte) {
 		gonode.LogError(parser.Error())
 		return
 	} else {
-		peer, ok := insPeerManager().GetClientPeer(id)
+		peer, ok := gen_room.GetClientPeer(id)
 		if !ok {
 			return
 		}
@@ -57,78 +49,34 @@ func HandleMsg(id string, msg []byte) {
 		case opcode.SetProperties:
 			handleSetProperties(peer, opCode, parser)
 		default:
-			gonode.Send(id, msg)
 			break
 		}
 	}
 }
 
 func HandleClose(id string) {
-	peer, ok := insPeerManager().GetClientPeer(id)
+	peer, ok := gen_room.GetClientPeer(id)
 	if !ok {
 		return
 	}
-	fmt.Println("the conn has been closed:" + peer.PeerId())
-	room := insRoom(peer.RoomId())
-	if actor, exist := room.ActorsManager().GetActorByPeerId(peer.PeerId()); exist {
-		fmt.Print("has found the target actor:")
-		fmt.Println(actor.ActorNr)
-		room.EventCache().RemoveEventsByActor(actor.ActorNr) // remove the events of the actor from the eventcache
-		room.ActorsManager().RemoveActorByNr(actor.ActorNr)  // remove the actor from the actormanager
-		if room.MasterClientId == actor.ActorNr {
-			if newactor, exist := insRoom(peer.RoomId()).ActorsManager().GetActorByIndex(0); exist {
-				room.MasterClientId = newactor.ActorNr // testcode:use the first actor of the left room actors as the masterclient
-			} else {
-				room.MasterClientId = 0 // testcode:when the room has no actors
-			}
-		}
-
-		fmt.Print("try to pub the disconnect event :")
-		fmt.Println(actor.ActorNr)
-		//pubDisconnectEvent(id, actor.ActorNr)
-		pubLeaveEvent(peer, actor.ActorNr)
-
-		// check the room is empty, and send a remove roomstate event to lobby
-		if room.IsEmpty() {
-			disposeRoom(room.Name)
-			sendRemoveRoomState(room.Name)
-		}
+	room, actor, err := gen_room.GetActorInRoom(peer.PeerId(), peer.RoomId())
+	if err != nil {
+		gonode.LogError(err)
+		return
 	}
-}
-
-var _insPeerManager *peers.PeerManager = nil
-
-func insPeerManager() *peers.PeerManager {
-	if _insPeerManager == nil {
-		_insPeerManager = peers.NewPeerManager()
+	pubLeaveEvent(peer, actor, room)
+	_, _, err2 := gen_room.LeaveRoom(peer.PeerId(), room.RoomId())
+	if err2 != nil {
+		gonode.LogError(err2)
+		return
 	}
-	return _insPeerManager
-}
-
-var actorNr int32 = 1
-var _insRoomManager *room.RoomManager = nil
-
-func insRoom(roomId string) *room.Room {
-	if _insRoomManager == nil {
-		_insRoomManager = room.NewRoomManager()
+	if room.IsEmpty() {
+		gen_room.DisposeRoom(room.RoomId())
 	}
-	return _insRoomManager.FetchRoom(roomId)
+	gen_room.RemovePeer(id)
 }
 
-func disposeRoom(roomId string) {
-	if _insRoomManager == nil {
-		_insRoomManager = room.NewRoomManager()
-	}
-	_insRoomManager.DisposeRoom(roomId)
-}
-
-func handleErrors(id string, opCode byte, err error) {
-	//gonode.Error(err.Error())
-	fmt.Print("[ERROR]::")
-	fmt.Println(err)
-}
-
-func handleSetProperties(peer *peers.ClientPeer, opCode byte, parser *binbuf.BinParser) {
+func handleSetProperties(peer *gen_room.ClientPeer, opCode byte, parser *binbuf.BinParser) {
 	datas, _ := binbuf.BuildBuffer(256).
 		PushByte(0).             // resp
 		PushShort(0).            // retcode
@@ -136,7 +84,7 @@ func handleSetProperties(peer *peers.ClientPeer, opCode byte, parser *binbuf.Bin
 	gonode.Send(peer.PeerId(), datas)
 }
 
-func handleAuthenticate(peer *peers.ClientPeer, opCode byte, parser *binbuf.BinParser) {
+func handleAuthenticate(peer *gen_room.ClientPeer, opCode byte, parser *binbuf.BinParser) {
 	datas, _ := binbuf.BuildBuffer(256).
 		PushByte(0).             // resp
 		PushShort(0).            // retcode
@@ -144,27 +92,31 @@ func handleAuthenticate(peer *peers.ClientPeer, opCode byte, parser *binbuf.BinP
 	gonode.Send(peer.PeerId(), datas)
 }
 
-func handleCreateGame(peer *peers.ClientPeer, opCode byte, parser *binbuf.BinParser) {
-	parser.Byte() // 255
+func handleCreateGame(peer *gen_room.ClientPeer, opCode byte, parser *binbuf.BinParser) {
+	parser.Byte()
 	_roomId := parser.Object()
 	if parser.Error() != nil {
-		handleErrors(peer.PeerId(), opCode, parser.Error())
+		gonode.LogError(parser.Error())
 		return
 	}
 	roomId, ok := _roomId.(string)
 	if !ok {
-		handleErrors(peer.PeerId(), opCode, errors.New("cannot get the roomId!"))
+		gonode.LogError(errors.New("cannot get the roomId!"))
 		return
 	}
+
+	room, actor, err := gen_room.CreateRoom(peer.PeerId(), roomId)
+	if err != nil {
+		gonode.LogError(err)
+	}
+	peer.SetRoomId(room.RoomId())
+
 	buf := binbuf.BuildBuffer(256)
 	buf.PushByte(0)
 	buf.PushShort(errorcode.Ok)
 	buf.PushByte(opCode)
 	buf.PushByte(paramcode.ActorNr)
-	buf.PushObject(actorNr)
-	//buf.PushByte(paramcode.ActorProperties)
-	//hash := stl.NewHashTable()
-	//buf.PushObject(hash.KeyValuePairs())
+	buf.PushObject(actor.ActorNr())
 	buf.PushByte(paramcode.GameProperties)
 	hash := stl.NewHashTable()
 	list2 := stl.NewList(0)
@@ -173,54 +125,42 @@ func handleCreateGame(peer *peers.ClientPeer, opCode byte, parser *binbuf.BinPar
 	hash.Set(gameparam.MaxPlayers, byte(4))
 	hash.Set(gameparam.IsVisible, true)
 	hash.Set(gameparam.IsOpen, true)
-	hash.Set(gameparam.MasterClientId, actorNr)
+	hash.Set(gameparam.MasterClientId, room.MasterId())
 	hash.Set(gameparam.CleanupCacheOnLeave, true)
 	buf.PushObject(hash.KeyValuePairs())
-	suc := false
-	actor, err := insRoom(roomId).ActorsManager().AddNewActor(peer.PeerId(), actorNr)
-	if err != nil {
-		handleErrors(peer.PeerId(), opCode, err)
-		return
-	} else {
-		suc = true
-		if insRoom(peer.RoomId()).MasterClientId == 0 {
-			insRoom(peer.RoomId()).MasterClientId = actor.ActorNr // testcode: use the first actor as the masterclient of the room
-		}
-		peer.SetRoomId(roomId)
-	}
-	actorNrs := insRoom(peer.RoomId()).ActorsManager().GetAllActorNrs()
 	buf.PushByte(paramcode.Actors)
-	buf.PushObject(actorNrs)
+	buf.PushObject(room.ActorsManager().GetAllActorNrs())
 	datas, _ := buf.Bytes()
 	gonode.Send(peer.PeerId(), datas)
-	if suc {
-		pubJoinEvent(peer, opCode, parser, actor.ActorNr)
-	}
-	actorNr += 1
+
+	pubJoinEvent(peer, actor, room)
 }
 
-func handleJoinGame(peer *peers.ClientPeer, opCode byte, parser *binbuf.BinParser) {
-	parser.Byte() // 255
+func handleJoinGame(peer *gen_room.ClientPeer, opCode byte, parser *binbuf.BinParser) {
+	parser.Byte()
 	_roomId := parser.Object()
 	if parser.Error() != nil {
-		handleErrors(peer.PeerId(), opCode, parser.Error())
+		gonode.LogError(parser.Error())
 		return
 	}
 	roomId, ok := _roomId.(string)
 	if !ok {
-		handleErrors(peer.PeerId(), opCode, errors.New("cannot get the roomId!"))
+		gonode.LogError(errors.New("cannot get the roomId!"))
 		return
 	}
+
+	room, actor, err := gen_room.JoinRoom(peer.PeerId(), roomId)
+	if err != nil {
+		gonode.LogError(err)
+	}
+	peer.SetRoomId(room.RoomId())
 
 	buf := binbuf.BuildBuffer(1024)
 	buf.PushByte(0)
 	buf.PushShort(errorcode.Ok)
 	buf.PushByte(opCode)
 	buf.PushByte(paramcode.ActorNr)
-	buf.PushObject(actorNr)
-	//buf.PushByte(paramcode.ActorProperties)
-	//hash := stl.NewHashTable()
-	//buf.PushObject(hash.KeyValuePairs())
+	buf.PushObject(actor.ActorNr())
 	buf.PushByte(paramcode.GameProperties)
 	hash := stl.NewHashTable()
 	hash.Set(gameparam.LobbyProperties, true)
@@ -228,31 +168,18 @@ func handleJoinGame(peer *peers.ClientPeer, opCode byte, parser *binbuf.BinParse
 	hash.Set(gameparam.MaxPlayers, byte(4))
 	hash.Set(gameparam.IsVisible, true)
 	hash.Set(gameparam.IsOpen, true)
-	hash.Set(gameparam.MasterClientId, insRoom(peer.RoomId()).MasterClientId)
+	hash.Set(gameparam.MasterClientId, room.MasterId())
 	hash.Set(gameparam.CleanupCacheOnLeave, true)
 	buf.PushObject(hash.KeyValuePairs())
-	suc := false
-	actor, err := insRoom(roomId).ActorsManager().AddNewActor(peer.PeerId(), actorNr)
-	if err != nil {
-		handleErrors(peer.PeerId(), opCode, err)
-		return
-	} else {
-		suc = true
-		peer.SetRoomId(roomId)
-	}
-	actorNrs := insRoom(peer.RoomId()).ActorsManager().GetAllActorNrs()
 	buf.PushByte(paramcode.Actors)
-	buf.PushObject(actorNrs)
+	buf.PushObject(room.ActorsManager().GetAllActorNrs())
 	datas, _ := buf.Bytes()
 	gonode.Send(peer.PeerId(), datas)
-	if suc {
-		pubJoinEvent(peer, opCode, parser, actor.ActorNr)
-	}
-	actorNr += 1
 
+	pubJoinEvent(peer, actor, room)
 }
 
-func handleRaiseEvent(peer *peers.ClientPeer, opCode byte, parser *binbuf.BinParser) {
+func handleRaiseEvent(peer *gen_room.ClientPeer, opCode byte, parser *binbuf.BinParser) {
 	// send self resp
 	datas, _ := binbuf.BuildBuffer(1024).
 		PushByte(0).
@@ -261,41 +188,27 @@ func handleRaiseEvent(peer *peers.ClientPeer, opCode byte, parser *binbuf.BinPar
 	gonode.Send(peer.PeerId(), datas)
 
 	// pub the event to others
-	evn := binbuf.BuildBuffer(1024)
-	actor, exist := insRoom(peer.RoomId()).ActorsManager().GetActorByPeerId(peer.PeerId())
-	if !exist {
-		handleErrors(peer.PeerId(), opCode, errors.New("cannot find the actor by the peeerid:"+peer.PeerId()))
-		return
-	}
 	parser.Byte()              // ParameterCode.Code
 	parser.Byte()              // gntypes.Byte
 	eventCode := parser.Byte() // eventCode
-	evn.PushByte(1)            // event
-	evn.PushByte(eventCode)
-	evn.PushByte(paramcode.ActorNr)
-	evn.PushObject(actor.ActorNr)
-	//actorNr += 1
-	evn.PushByte(paramcode.Code)
-	evn.PushObject(byte(eventCode))
 	var recvGroup byte = recvgroup.Others
 	var cacheOp byte = cacheop.DoNotCache
 	for {
 		paramCode := parser.Byte()
 		if parser.Error() != nil {
-			handleErrors(peer.PeerId(), opCode, parser.Error())
+			gonode.LogError(parser.Error())
 			return
 		}
 		if paramCode == paramcode.ReceiverGroup { // ReceiverGroup
 			if oRecvGroup := parser.Object(); parser.Error() != nil {
-				handleErrors(peer.PeerId(), opCode, parser.Error())
+				gonode.LogError(parser.Error())
 				return
 			} else {
 				recvGroup = oRecvGroup.(byte)
 			}
-			//parser.Byte() // Data
 		} else if paramCode == paramcode.Cache { // the event which will be cached
 			if oCacheOp := parser.Object(); parser.Error() != nil {
-				handleErrors(peer.PeerId(), opCode, parser.Error())
+				gonode.LogError(parser.Error())
 				return
 			} else {
 				cacheOp = oCacheOp.(byte)
@@ -304,140 +217,55 @@ func handleRaiseEvent(peer *peers.ClientPeer, opCode byte, parser *binbuf.BinPar
 			break
 		}
 	}
+	_, actor, err := gen_room.GetActorInRoom(peer.PeerId(), peer.RoomId())
+	if err != nil {
+		gonode.LogError(err)
+	}
+
+	evn := binbuf.BuildBuffer(1024)
+	evn.PushByte(1) // event
+	evn.PushByte(eventCode)
+	evn.PushByte(paramcode.ActorNr)
+	evn.PushObject(actor.ActorNr())
+	evn.PushByte(paramcode.Code)
+	evn.PushObject(byte(eventCode))
 	evn.PushByte(paramcode.Data)
 	data := parser.Bytes()
 	evn.PushBytes(data[5:])
-	// handle the cacheOp
-	if cacheOp == cacheop.AddToRoomCache || cacheOp == cacheop.AddToRoomCacheGlobal {
-		if actor, exist := insRoom(peer.RoomId()).ActorsManager().GetActorByPeerId(peer.PeerId()); exist {
-			datas, _ := evn.Bytes()
-			evnCache(peer).AddEvent(actor.ActorNr, eventCode, datas)
-		}
-	}
-	// handle the recvGroup
-	ids := gonode.AllConnIds() // get the ids in the same room
-	if recvGroup == recvgroup.MasterClient {
-		datas, _ := evn.Bytes()
-		gonode.Send(peer.PeerId(), datas)
-	} else if recvGroup == recvgroup.All {
-		for _, item := range ids {
-			datas, _ := evn.Bytes()
-			gonode.Send(item, datas)
-		}
-	} else {
-		for _, item := range ids {
-			if item != peer.PeerId() {
-				datas, _ := evn.Bytes()
-				gonode.Send(item, datas)
-			}
-		}
-	}
+
+	datas2, _ := evn.Bytes()
+	addToRoomCache := (cacheOp == cacheop.AddToRoomCache || cacheOp == cacheop.AddToRoomCacheGlobal)
+	gen_room.RaiseEvent(peer.PeerId(), peer.RoomId(), datas2, recvGroup, addToRoomCache)
 }
 
-func evnCache(peer *peers.ClientPeer) *room.RoomEventCache {
-	return insRoom(peer.RoomId()).EventCache()
-}
+func pubJoinEvent(peer *gen_room.ClientPeer, actor *gen_room.Actor, room *gen_room.RoomEntity) {
+	gen_room.RcvCacheEvent(peer.PeerId(), room.RoomId())
 
-//HiveGame.PublishEventCache (line 1410)
-func pubEventCache(peer *peers.ClientPeer) {
-	for _, item := range evnCache(peer).Events() {
-		event := item.(*room.CustomEvent)
-		fmt.Print("pub the cache event:")
-		fmt.Print(" actorNr:")
-		fmt.Print(event.ActorNr)
-		fmt.Print(" Code:")
-		fmt.Println(event.Code)
-		fmt.Print("Data:")
-		fmt.Println(event.Data)
-		gonode.Send(peer.PeerId(), event.Data)
-	}
-}
-
-func pubLeaveEvent(peer *peers.ClientPeer, actorNr int32) {
 	evn := binbuf.BuildBuffer(1024)
 	evn.PushByte(1)
-	evn.PushByte(evncode.Leave)
-
-	evn.PushByte(paramcode.ActorNr)
-	evn.PushObject(actorNr)
-
-	actorNrs := insRoom(peer.RoomId()).ActorsManager().GetAllActorNrs()
-	evn.PushByte(paramcode.Actors)
-	evn.PushObject(actorNrs)
-
-	evn.PushByte(paramcode.IsInactive)
-	evn.PushObject(false)
-
-	ids := insRoom(peer.RoomId()).ActorsManager().GetAllPeerIds()
-	for _, item := range ids {
-		if item != peer.PeerId() {
-			datas, _ := evn.Bytes()
-			gonode.Send(item, datas)
-		}
-	}
-
-}
-
-func pubDisconnectEvent(peer *peers.ClientPeer, actorNr int32) {
-	evn := binbuf.BuildBuffer(1024)
-	evn.PushByte(1)
-	evn.PushByte(evncode.Leave)
-
-	evn.PushByte(paramcode.ActorNr)
-	evn.PushObject(actorNr)
-
-	actorNrs := make([]int32, 0, 0)
-	evn.PushByte(paramcode.Actors)
-	evn.PushObject(actorNrs)
-
-	evn.PushByte(paramcode.IsInactive)
-	evn.PushObject(true)
-
-	ids := insRoom(peer.RoomId()).ActorsManager().GetAllPeerIds()
-	for _, item := range ids {
-		if item != peer.PeerId() {
-			datas, _ := evn.Bytes()
-			gonode.Send(item, datas)
-		}
-	}
-
-}
-
-func pubJoinEvent(peer *peers.ClientPeer, opCode byte, parser *binbuf.BinParser, actorNr int32) {
-	evn := binbuf.BuildBuffer(1024)
-
-	// handle the cache events publist
-	pubEventCache(peer)
-
-	evn.PushByte(1) // event
 	evn.PushByte(evncode.Join)
-
 	hashTable := stl.NewHashTable()
 	hashTable.Set(actorparam.Nickname, "")
 	evn.PushByte(paramcode.ActorProperties)
 	evn.PushObject(hashTable.KeyValuePairs())
-
 	evn.PushByte(paramcode.ActorNr)
-	evn.PushObject(actorNr)
-
-	actorNrs := insRoom(peer.RoomId()).ActorsManager().GetAllActorNrs()
+	evn.PushObject(actor.ActorNr())
 	evn.PushByte(paramcode.Actors)
-	evn.PushObject(actorNrs)
-
-	ids := insRoom(peer.RoomId()).ActorsManager().GetAllPeerIds()
-	for _, item := range ids {
-		datas, _ := evn.Bytes()
-		gonode.Send(item, datas)
-	}
-	fmt.Println(actorNr)
+	evn.PushObject(room.ActorsManager().GetAllActorNrs())
 	datas, _ := evn.Bytes()
-	evnCache(peer).AddEvent(actorNr, evncode.Join, datas)
-
+	gen_room.RaiseEvent(peer.PeerId(), room.RoomId(), datas, gen_room.RcvGroup_All, true)
 }
 
-func sendRemoveRoomState(roomId string) {
-	datas, _ := binbuf.BuildBuffer(256).
-		PushByte(servereventcode.RemoveGameState).
-		PushString(roomId).Bytes()
-	gonode.Send("lobby", datas)
+func pubLeaveEvent(peer *gen_room.ClientPeer, actor *gen_room.Actor, room *gen_room.RoomEntity) {
+	evn := binbuf.BuildBuffer(1024)
+	evn.PushByte(1)
+	evn.PushByte(evncode.Leave)
+	evn.PushByte(paramcode.ActorNr)
+	evn.PushObject(actor.ActorNr())
+	evn.PushByte(paramcode.Actors)
+	evn.PushObject(room.ActorsManager().GetAllActorNrs())
+	evn.PushByte(paramcode.IsInactive)
+	evn.PushObject(false)
+	datas, _ := evn.Bytes()
+	gen_room.RaiseEvent(peer.PeerId(), room.RoomId(), datas, gen_room.RcvGroup_Others, false)
 }
