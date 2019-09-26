@@ -33,18 +33,18 @@ func (this *RoomServer) Start() {
 
 }
 func (this *RoomServer) OnConn(id string) {
-	if gonode.IsCntId(id) {
+	if gonode.IsPeer(id) {
 		game.HandleConn(id)
 	}
 }
 func (this *RoomServer) OnMsg(id string, msg []byte) {
-	if gonode.IsCntId(id) {
+	if gonode.IsPeer(id) {
 		game.HandleMsg(id, msg)
 	}
 }
 func (this *RoomServer) OnClose(id string, reason error) {
 	fmt.Println("node[" + id + "] has been closed! " + reason.Error())
-	if gonode.IsCntId(id) {
+	if gonode.IsPeer(id) {
 		game.HandleClose(id)
 	}
 }
