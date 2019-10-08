@@ -20,7 +20,7 @@ import (
 )
 
 func HandleConn(id string) {
-	gen_room.AddPeer(gen_room.NewClientPeer(id))
+	gen_room.AddPeer(gen_room.NewRoomPeer(id))
 }
 
 func HandleMsg(id string, msg []byte) {
@@ -29,7 +29,7 @@ func HandleMsg(id string, msg []byte) {
 		gonode.LogError(parser.Error())
 		return
 	} else {
-		peer, ok := gen_room.GetClientPeer(id)
+		peer, ok := gen_room.GetPeer(id)
 		if !ok {
 			return
 		}
@@ -55,7 +55,7 @@ func HandleMsg(id string, msg []byte) {
 }
 
 func HandleClose(id string) {
-	peer, ok := gen_room.GetClientPeer(id)
+	peer, ok := gen_room.GetPeer(id)
 	if !ok {
 		return
 	}
@@ -71,12 +71,12 @@ func HandleClose(id string) {
 		return
 	}
 	if room.IsEmpty() {
-		gen_room.DisposeRoom(room.RoomId())
+		gen_room.DisposeRoom(room.RoomId(), id)
 	}
 	gen_room.RemovePeer(id)
 }
 
-func handleSetProperties(peer *gen_room.ClientPeer, opCode byte, parser *binbuf.BinParser) {
+func handleSetProperties(peer *gen_room.RoomPeer, opCode byte, parser *binbuf.BinParser) {
 	datas, _ := binbuf.BuildBuffer(256).
 		PushByte(0).             // resp
 		PushShort(0).            // retcode
@@ -84,7 +84,7 @@ func handleSetProperties(peer *gen_room.ClientPeer, opCode byte, parser *binbuf.
 	gonode.Send(peer.PeerId(), datas)
 }
 
-func handleAuthenticate(peer *gen_room.ClientPeer, opCode byte, parser *binbuf.BinParser) {
+func handleAuthenticate(peer *gen_room.RoomPeer, opCode byte, parser *binbuf.BinParser) {
 	datas, _ := binbuf.BuildBuffer(256).
 		PushByte(0).             // resp
 		PushShort(0).            // retcode
@@ -92,7 +92,7 @@ func handleAuthenticate(peer *gen_room.ClientPeer, opCode byte, parser *binbuf.B
 	gonode.Send(peer.PeerId(), datas)
 }
 
-func handleCreateGame(peer *gen_room.ClientPeer, opCode byte, parser *binbuf.BinParser) {
+func handleCreateGame(peer *gen_room.RoomPeer, opCode byte, parser *binbuf.BinParser) {
 	parser.Byte()
 	_roomId := parser.Object()
 	if parser.Error() != nil {
@@ -136,7 +136,7 @@ func handleCreateGame(peer *gen_room.ClientPeer, opCode byte, parser *binbuf.Bin
 	pubJoinEvent(peer, actor, room)
 }
 
-func handleJoinGame(peer *gen_room.ClientPeer, opCode byte, parser *binbuf.BinParser) {
+func handleJoinGame(peer *gen_room.RoomPeer, opCode byte, parser *binbuf.BinParser) {
 	parser.Byte()
 	_roomId := parser.Object()
 	if parser.Error() != nil {
@@ -179,7 +179,7 @@ func handleJoinGame(peer *gen_room.ClientPeer, opCode byte, parser *binbuf.BinPa
 	pubJoinEvent(peer, actor, room)
 }
 
-func handleRaiseEvent(peer *gen_room.ClientPeer, opCode byte, parser *binbuf.BinParser) {
+func handleRaiseEvent(peer *gen_room.RoomPeer, opCode byte, parser *binbuf.BinParser) {
 	// send self resp
 	datas, _ := binbuf.BuildBuffer(1024).
 		PushByte(0).
@@ -238,7 +238,7 @@ func handleRaiseEvent(peer *gen_room.ClientPeer, opCode byte, parser *binbuf.Bin
 	gen_room.RaiseEvent(peer.PeerId(), peer.RoomId(), datas2, recvGroup, addToRoomCache)
 }
 
-func pubJoinEvent(peer *gen_room.ClientPeer, actor *gen_room.Actor, room *gen_room.RoomEntity) {
+func pubJoinEvent(peer *gen_room.RoomPeer, actor *gen_room.Actor, room *gen_room.RoomEntity) {
 	gen_room.RcvCacheEvent(peer.PeerId(), room.RoomId())
 
 	evn := binbuf.BuildBuffer(1024)
@@ -256,7 +256,7 @@ func pubJoinEvent(peer *gen_room.ClientPeer, actor *gen_room.Actor, room *gen_ro
 	gen_room.RaiseEvent(peer.PeerId(), room.RoomId(), datas, gen_room.RcvGroup_All, true)
 }
 
-func pubLeaveEvent(peer *gen_room.ClientPeer, actor *gen_room.Actor, room *gen_room.RoomEntity) {
+func pubLeaveEvent(peer *gen_room.RoomPeer, actor *gen_room.Actor, room *gen_room.RoomEntity) {
 	evn := binbuf.BuildBuffer(1024)
 	evn.PushByte(1)
 	evn.PushByte(evncode.Leave)
