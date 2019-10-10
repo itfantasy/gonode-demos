@@ -4,8 +4,8 @@ import (
 	"errors"
 
 	"github.com/itfantasy/gonode"
-	"github.com/itfantasy/gonode/core/binbuf"
 
+	"github.com/itfantasy/gonode-icloud/icloud/gunpeer"
 	"github.com/itfantasy/gonode-icloud/icloud/opcode"
 	"github.com/itfantasy/gonode-icloud/icloud/opcode/actorparam"
 	"github.com/itfantasy/gonode-icloud/icloud/opcode/cacheop"
@@ -13,7 +13,7 @@ import (
 	"github.com/itfantasy/gonode-icloud/icloud/opcode/evncode"
 	"github.com/itfantasy/gonode-icloud/icloud/opcode/gameparam"
 	"github.com/itfantasy/gonode-icloud/icloud/opcode/paramcode"
-	"github.com/itfantasy/gonode-icloud/icloud/opcode/recvgroup"
+	//	"github.com/itfantasy/gonode-icloud/icloud/opcode/recvgroup"
 	"github.com/itfantasy/gonode/utils/stl"
 
 	"github.com/itfantasy/gonode-toolkit/toolkit/gen_room"
@@ -24,33 +24,33 @@ func HandleConn(id string) {
 }
 
 func HandleMsg(id string, msg []byte) {
-	parser := binbuf.BuildParser(msg, 0)
-	if opCode := parser.Byte(); parser.Error() != nil {
-		gonode.LogError(parser.Error())
+	opCode, datas, err := gunpeer.ParseMsg(msg)
+	if err != nil {
+		gonode.LogError(err)
 		return
-	} else {
-		peer, ok := gen_room.GetPeer(id)
-		if !ok {
-			return
-		}
-		switch opCode {
-		case opcode.Authenticate:
-			handleAuthenticate(peer, opCode, parser)
-			break
-		case opcode.CreateGame:
-			handleCreateGame(peer, opCode, parser)
-			break
-		case opcode.JoinGame:
-			handleJoinGame(peer, opCode, parser)
-			break
-		case opcode.RaiseEvent:
-			handleRaiseEvent(peer, opCode, parser)
-			break
-		case opcode.SetProperties:
-			handleSetProperties(peer, opCode, parser)
-		default:
-			break
-		}
+	}
+	peer, ok := gen_room.GetPeer(id)
+	if !ok {
+		gonode.LogError(errors.New("peer missing..." + id))
+		return
+	}
+	switch opCode {
+	case opcode.Authenticate:
+		handleAuthenticate(peer, opCode, datas)
+		break
+	case opcode.CreateGame:
+		handleCreateGame(peer, opCode, datas)
+		break
+	case opcode.JoinGame:
+		handleJoinGame(peer, opCode, datas)
+		break
+	case opcode.RaiseEvent:
+		handleRaiseEvent(peer, opCode, datas)
+		break
+	case opcode.SetProperties:
+		handleSetProperties(peer, opCode, datas)
+	default:
+		break
 	}
 }
 
@@ -61,13 +61,13 @@ func HandleClose(id string) {
 	}
 	room, actor, err := gen_room.GetActorInRoom(peer.PeerId(), peer.RoomId())
 	if err != nil {
-		gonode.LogError(err)
+		handleError(peer, 0, err)
 		return
 	}
 	pubLeaveEvent(peer, actor, room)
 	_, _, err2 := gen_room.LeaveRoom(peer.PeerId(), room.RoomId())
 	if err2 != nil {
-		gonode.LogError(err2)
+		handleError(peer, 0, err2)
 		return
 	}
 	if room.IsEmpty() {
@@ -76,48 +76,27 @@ func HandleClose(id string) {
 	gen_room.RemovePeer(id)
 }
 
-func handleSetProperties(peer *gen_room.RoomPeer, opCode byte, parser *binbuf.BinParser) {
-	datas, _ := binbuf.BuildBuffer(256).
-		PushByte(0).             // resp
-		PushShort(0).            // retcode
-		PushByte(opCode).Bytes() // opcode
-	gonode.Send(peer.PeerId(), datas)
+func handleSetProperties(peer *gen_room.RoomPeer, opCode byte, datas *gunpeer.PeerDatas) {
+	gunpeer.SendResponse(peer.PeerId(), errorcode.Ok, opCode, nil)
 }
 
-func handleAuthenticate(peer *gen_room.RoomPeer, opCode byte, parser *binbuf.BinParser) {
-	datas, _ := binbuf.BuildBuffer(256).
-		PushByte(0).             // resp
-		PushShort(0).            // retcode
-		PushByte(opCode).Bytes() // opcode
-	gonode.Send(peer.PeerId(), datas)
+func handleAuthenticate(peer *gen_room.RoomPeer, opCode byte, datas *gunpeer.PeerDatas) {
+	gunpeer.SendResponse(peer.PeerId(), errorcode.Ok, opCode, nil)
 }
 
-func handleCreateGame(peer *gen_room.RoomPeer, opCode byte, parser *binbuf.BinParser) {
-	parser.Byte()
-	_roomId := parser.Object()
-	if parser.Error() != nil {
-		gonode.LogError(parser.Error())
-		return
-	}
-	roomId, ok := _roomId.(string)
-	if !ok {
-		gonode.LogError(errors.New("cannot get the roomId!"))
+func handleCreateGame(peer *gen_room.RoomPeer, opCode byte, datas *gunpeer.PeerDatas) {
+	roomId, _ := datas.GetString(paramcode.GameId)
+	if datas.Err() != nil {
+		handleError(peer, opCode, datas.Err())
 		return
 	}
 
 	room, actor, err := gen_room.CreateRoom(peer.PeerId(), roomId)
 	if err != nil {
-		gonode.LogError(err)
+		handleError(peer, opCode, err)
 	}
 	peer.SetRoomId(room.RoomId())
 
-	buf := binbuf.BuildBuffer(256)
-	buf.PushByte(0)
-	buf.PushShort(errorcode.Ok)
-	buf.PushByte(opCode)
-	buf.PushByte(paramcode.ActorNr)
-	buf.PushObject(actor.ActorNr())
-	buf.PushByte(paramcode.GameProperties)
 	hash := stl.NewHashTable()
 	list2 := stl.NewList(0)
 	hash.Set(gameparam.LobbyProperties, list2.Values())
@@ -127,41 +106,28 @@ func handleCreateGame(peer *gen_room.RoomPeer, opCode byte, parser *binbuf.BinPa
 	hash.Set(gameparam.IsOpen, true)
 	hash.Set(gameparam.MasterClientId, room.MasterId())
 	hash.Set(gameparam.CleanupCacheOnLeave, true)
-	buf.PushObject(hash.KeyValuePairs())
-	buf.PushByte(paramcode.Actors)
-	buf.PushObject(room.ActorsManager().GetAllActorNrs())
-	datas, _ := buf.Bytes()
-	gonode.Send(peer.PeerId(), datas)
 
+	gunpeer.SendResponse(peer.PeerId(), errorcode.Ok, opCode, map[byte]interface{}{
+		paramcode.ActorNr:        actor.ActorNr(),
+		paramcode.GameProperties: hash.KeyValuePairs(),
+		paramcode.Actors:         room.ActorsManager().GetAllActorNrs(),
+	})
 	pubJoinEvent(peer, actor, room)
 }
 
-func handleJoinGame(peer *gen_room.RoomPeer, opCode byte, parser *binbuf.BinParser) {
-	parser.Byte()
-	_roomId := parser.Object()
-	if parser.Error() != nil {
-		gonode.LogError(parser.Error())
-		return
-	}
-	roomId, ok := _roomId.(string)
-	if !ok {
-		gonode.LogError(errors.New("cannot get the roomId!"))
+func handleJoinGame(peer *gen_room.RoomPeer, opCode byte, datas *gunpeer.PeerDatas) {
+	roomId, _ := datas.GetString(paramcode.GameId)
+	if datas.Err() != nil {
+		handleError(peer, opCode, datas.Err())
 		return
 	}
 
 	room, actor, err := gen_room.JoinRoom(peer.PeerId(), roomId)
 	if err != nil {
-		gonode.LogError(err)
+		handleError(peer, opCode, err)
 	}
 	peer.SetRoomId(room.RoomId())
 
-	buf := binbuf.BuildBuffer(1024)
-	buf.PushByte(0)
-	buf.PushShort(errorcode.Ok)
-	buf.PushByte(opCode)
-	buf.PushByte(paramcode.ActorNr)
-	buf.PushObject(actor.ActorNr())
-	buf.PushByte(paramcode.GameProperties)
 	hash := stl.NewHashTable()
 	hash.Set(gameparam.LobbyProperties, true)
 	hash.Set(gameparam.CleanupCacheOnLeave, true)
@@ -170,102 +136,78 @@ func handleJoinGame(peer *gen_room.RoomPeer, opCode byte, parser *binbuf.BinPars
 	hash.Set(gameparam.IsOpen, true)
 	hash.Set(gameparam.MasterClientId, room.MasterId())
 	hash.Set(gameparam.CleanupCacheOnLeave, true)
-	buf.PushObject(hash.KeyValuePairs())
-	buf.PushByte(paramcode.Actors)
-	buf.PushObject(room.ActorsManager().GetAllActorNrs())
-	datas, _ := buf.Bytes()
-	gonode.Send(peer.PeerId(), datas)
+
+	gunpeer.SendResponse(peer.PeerId(), errorcode.Ok, opCode, map[byte]interface{}{
+		paramcode.ActorNr:        actor.ActorNr(),
+		paramcode.GameProperties: hash.KeyValuePairs(),
+		paramcode.Actors:         room.ActorsManager().GetAllActorNrs(),
+	})
 
 	pubJoinEvent(peer, actor, room)
 }
 
-func handleRaiseEvent(peer *gen_room.RoomPeer, opCode byte, parser *binbuf.BinParser) {
+func handleRaiseEvent(peer *gen_room.RoomPeer, opCode byte, datas *gunpeer.PeerDatas) {
 	// send self resp
-	datas, _ := binbuf.BuildBuffer(1024).
-		PushByte(0).
-		PushShort(errorcode.Ok).
-		PushByte(opCode).Bytes()
-	gonode.Send(peer.PeerId(), datas)
+	gunpeer.SendResponse(peer.PeerId(), errorcode.Ok, opCode, nil)
 
-	// pub the event to others
-	parser.Byte()              // ParameterCode.Code
-	parser.Byte()              // gntypes.Byte
-	eventCode := parser.Byte() // eventCode
-	var recvGroup byte = recvgroup.Others
-	var cacheOp byte = cacheop.DoNotCache
-	for {
-		paramCode := parser.Byte()
-		if parser.Error() != nil {
-			gonode.LogError(parser.Error())
-			return
-		}
-		if paramCode == paramcode.ReceiverGroup { // ReceiverGroup
-			if oRecvGroup := parser.Object(); parser.Error() != nil {
-				gonode.LogError(parser.Error())
-				return
-			} else {
-				recvGroup = oRecvGroup.(byte)
-			}
-		} else if paramCode == paramcode.Cache { // the event which will be cached
-			if oCacheOp := parser.Object(); parser.Error() != nil {
-				gonode.LogError(parser.Error())
-				return
-			} else {
-				cacheOp = oCacheOp.(byte)
-			}
-		} else if paramCode == paramcode.Data { // when get the data
-			break
-		}
+	eventCode, _ := datas.GetByte(paramcode.Code)
+	recvGroup, _ := datas.GetByte(paramcode.ReceiverGroup)
+	cacheOp, _ := datas.GetByte(paramcode.Cache)
+	//eventData, _ := datas.GetByte(paramcode.Data)
+	if datas.Err() != nil {
+		handleError(peer, opCode, datas.Err())
+		return
 	}
+
 	_, actor, err := gen_room.GetActorInRoom(peer.PeerId(), peer.RoomId())
 	if err != nil {
-		gonode.LogError(err)
+		handleError(peer, opCode, err)
 	}
 
-	evn := binbuf.BuildBuffer(1024)
-	evn.PushByte(1) // event
-	evn.PushByte(eventCode)
-	evn.PushByte(paramcode.ActorNr)
-	evn.PushObject(actor.ActorNr())
-	evn.PushByte(paramcode.Code)
-	evn.PushObject(byte(eventCode))
-	evn.PushByte(paramcode.Data)
-	data := parser.Bytes()
-	evn.PushBytes(data[5:])
+	evnDatas, err := gunpeer.EventDatas(eventCode, map[byte]interface{}{
+		paramcode.ActorNr: actor.ActorNr(),
+		paramcode.Code:    byte(eventCode),
+		paramcode.Data:    datas.RawBytes()[5:],
+	})
+	if err != nil {
+		handleError(peer, opCode, err)
+	}
 
-	datas2, _ := evn.Bytes()
 	addToRoomCache := (cacheOp == cacheop.AddToRoomCache || cacheOp == cacheop.AddToRoomCacheGlobal)
-	gen_room.RaiseEvent(peer.PeerId(), peer.RoomId(), datas2, recvGroup, addToRoomCache)
+	gen_room.RaiseEvent(peer.PeerId(), peer.RoomId(), evnDatas, recvGroup, addToRoomCache)
 }
 
 func pubJoinEvent(peer *gen_room.RoomPeer, actor *gen_room.Actor, room *gen_room.RoomEntity) {
 	gen_room.RcvCacheEvent(peer.PeerId(), room.RoomId())
 
-	evn := binbuf.BuildBuffer(1024)
-	evn.PushByte(1)
-	evn.PushByte(evncode.Join)
 	hashTable := stl.NewHashTable()
 	hashTable.Set(actorparam.Nickname, "")
-	evn.PushByte(paramcode.ActorProperties)
-	evn.PushObject(hashTable.KeyValuePairs())
-	evn.PushByte(paramcode.ActorNr)
-	evn.PushObject(actor.ActorNr())
-	evn.PushByte(paramcode.Actors)
-	evn.PushObject(room.ActorsManager().GetAllActorNrs())
-	datas, _ := evn.Bytes()
-	gen_room.RaiseEvent(peer.PeerId(), room.RoomId(), datas, gen_room.RcvGroup_All, true)
+
+	evnDatas, err := gunpeer.EventDatas(evncode.Join, map[byte]interface{}{
+		paramcode.ActorProperties: hashTable.KeyValuePairs(),
+		paramcode.ActorNr:         actor.ActorNr(),
+		paramcode.Actors:          room.ActorsManager().GetAllActorNrs(),
+	})
+	if err != nil {
+		handleError(peer, evncode.Join, err)
+	}
+
+	gen_room.RaiseEvent(peer.PeerId(), room.RoomId(), evnDatas, gen_room.RcvGroup_All, true)
 }
 
 func pubLeaveEvent(peer *gen_room.RoomPeer, actor *gen_room.Actor, room *gen_room.RoomEntity) {
-	evn := binbuf.BuildBuffer(1024)
-	evn.PushByte(1)
-	evn.PushByte(evncode.Leave)
-	evn.PushByte(paramcode.ActorNr)
-	evn.PushObject(actor.ActorNr())
-	evn.PushByte(paramcode.Actors)
-	evn.PushObject(room.ActorsManager().GetAllActorNrs())
-	evn.PushByte(paramcode.IsInactive)
-	evn.PushObject(false)
-	datas, _ := evn.Bytes()
-	gen_room.RaiseEvent(peer.PeerId(), room.RoomId(), datas, gen_room.RcvGroup_Others, false)
+	evnDatas, err := gunpeer.EventDatas(evncode.Leave, map[byte]interface{}{
+		paramcode.ActorNr:    actor.ActorNr(),
+		paramcode.Actors:     room.ActorsManager().GetAllActorNrs(),
+		paramcode.IsInactive: false,
+	})
+	if err != nil {
+		handleError(peer, evncode.Leave, err)
+	}
+
+	gen_room.RaiseEvent(peer.PeerId(), room.RoomId(), evnDatas, gen_room.RcvGroup_Others, false)
+}
+
+func handleError(peer *gen_room.RoomPeer, opCode byte, err error) {
+	gonode.LogError(err)
 }

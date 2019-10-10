@@ -1,33 +1,28 @@
 package master
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/itfantasy/gonode"
+	"github.com/itfantasy/gonode-icloud/icloud/gunpeer"
 	"github.com/itfantasy/gonode-icloud/icloud/opcode"
 	"github.com/itfantasy/gonode-icloud/icloud/opcode/errorcode"
 	"github.com/itfantasy/gonode-icloud/icloud/opcode/paramcode"
 	"github.com/itfantasy/gonode-icloud/icloud/opcode/servereventcode"
 	"github.com/itfantasy/gonode/core/binbuf"
-	"github.com/itfantasy/gonode/utils/strs"
+
+	"github.com/itfantasy/gonode-toolkit/toolkit"
+	"github.com/itfantasy/gonode-toolkit/toolkit/gen_lobby"
+	"github.com/itfantasy/gonode/utils/snowflake"
 )
 
-var tempRoomUrl string
-
-func SetDefaultRoomUrl(url string) {
-	tempRoomUrl = url
-}
-
 func HandleConn(id string) {
-	if strs.StartsWith(id, "room") {
-
-	}
+	gen_lobby.AddPeer(gen_lobby.NewLobbyPeer(id))
 }
 
 func HandleClose(id string) {
-	if strs.StartsWith(id, "room") {
-
-	}
+	gen_lobby.RemovePeer(id)
 }
 
 func HandleServerMsg(id string, msg []byte) {
@@ -58,75 +53,106 @@ func handleRemoveGameState(id string, opCode byte, parser *binbuf.BinParser) {
 }
 
 func HandleMsg(id string, msg []byte) {
-	parser := binbuf.BuildParser(msg, 0)
-	if opCode := parser.Byte(); parser.Error() != nil {
-		gonode.LogError(parser.Error())
+	opCode, datas, err := gunpeer.ParseMsg(msg)
+	if err != nil {
+		gonode.LogError(err)
 		return
-	} else {
-		switch opCode {
-		case opcode.Authenticate:
-			handleAuthenticate(id, opCode, parser)
-			break
-		case opcode.CreateGame:
-			handleCreateGame(id, opCode, parser)
-			break
-		case opcode.JoinGame:
-			handleJoinGame(id, opCode, parser)
-			break
-		case opcode.JoinRandomGame:
-			handleJoinRandomGame(id, opCode, parser)
-			break
-		default:
-			break
-		}
+	}
+	peer, ok := gen_lobby.GetPeer(id)
+	if !ok {
+		gonode.LogError(errors.New("peer missing..." + id))
+		return
+	}
+	switch opCode {
+	case opcode.Authenticate:
+		handleAuthenticate(peer, opCode, datas)
+		break
+	case opcode.CreateGame:
+		handleCreateGame(peer, opCode, datas)
+		break
+	case opcode.JoinGame:
+		handleJoinGame(peer, opCode, datas)
+		break
+	case opcode.JoinRandomGame:
+		handleJoinRandomGame(peer, opCode, datas)
+		break
+	default:
+		break
 	}
 }
 
-func handleErrors(id string, opCode byte, err error) {
+func handleError(peer *gen_lobby.LobbyPeer, opCode byte, err error) {
 	gonode.LogError(err)
 }
 
-func handleAuthenticate(id string, opCode byte, parser *binbuf.BinParser) {
-	datas, _ := binbuf.BuildBuffer(256).
-		PushByte(0).             // resp
-		PushShort(0).            // retcode
-		PushByte(opCode).Bytes() // opcode
-	gonode.Send(id, datas)
+func handleAuthenticate(peer *gen_lobby.LobbyPeer, opCode byte, datas *gunpeer.PeerDatas) {
+	gunpeer.SendResponse(peer.PeerId(), errorcode.Ok, opCode, nil)
 }
 
-func handleCreateGame(id string, opCode byte, parser *binbuf.BinParser) {
-	datas, _ := binbuf.BuildBuffer(256).
-		PushByte(0).
-		PushShort(errorcode.Ok).
-		PushByte(opCode).
-		PushByte(paramcode.GameId).
-		PushObject("game1123").
-		PushByte(paramcode.Address).
-		PushObject(tempRoomUrl).Bytes()
-	gonode.Send(id, datas)
+func handleCreateGame(peer *gen_lobby.LobbyPeer, opCode byte, datas *gunpeer.PeerDatas) {
+	room, err := gen_lobby.CreateRoom(peer.PeerId(), snowflake.Generate())
+	if err != nil {
+		handleError(peer, opCode, err)
+		return
+	}
+	info, err := gonode.GetNodeInfo(room.NodeId)
+	if err != nil {
+		handleError(peer, opCode, err)
+		return
+	}
+	pub, ok := info.UsrDatas[toolkit.USRDATA_PUBDOMAIN]
+	if !ok {
+		pub = info.Url
+	}
+	gunpeer.SendResponse(peer.PeerId(), errorcode.Ok, opCode, map[byte]interface{}{
+		paramcode.GameId:  room.RoomId,
+		paramcode.Address: pub,
+	})
 }
 
-func handleJoinGame(id string, opCode byte, parser *binbuf.BinParser) {
-	datas, _ := binbuf.BuildBuffer(256).
-		PushByte(0).
-		PushShort(errorcode.Ok).
-		PushByte(opCode).
-		PushByte(paramcode.GameId).
-		PushObject("game1123").
-		PushByte(paramcode.Address).
-		PushObject(tempRoomUrl).Bytes()
-	gonode.Send(id, datas)
-
+func handleJoinGame(peer *gen_lobby.LobbyPeer, opCode byte, datas *gunpeer.PeerDatas) {
+	roomId, _ := datas.GetString(paramcode.GameId)
+	if datas.Err() != nil {
+		handleError(peer, opCode, datas.Err())
+		return
+	}
+	room, err := gen_lobby.JoinRoom(peer.PeerId(), roomId)
+	if err != nil {
+		handleError(peer, opCode, err)
+		return
+	}
+	info, err := gonode.GetNodeInfo(room.NodeId)
+	if err != nil {
+		handleError(peer, opCode, err)
+		return
+	}
+	pub, ok := info.UsrDatas[toolkit.USRDATA_PUBDOMAIN]
+	if !ok {
+		pub = info.Url
+	}
+	gunpeer.SendResponse(peer.PeerId(), errorcode.Ok, opCode, map[byte]interface{}{
+		paramcode.GameId:  room.RoomId,
+		paramcode.Address: pub,
+	})
 }
 
-func handleJoinRandomGame(id string, opCode byte, parser *binbuf.BinParser) {
-	buf := binbuf.BuildBuffer(256)
-	datas, _ := buf.PushByte(0).
-		PushShort(errorcode.Ok).
-		PushByte(opCode).
-		PushByte(paramcode.GameId).
-		PushObject("game1123").
-		PushByte(paramcode.Address).
-		PushObject(tempRoomUrl).Bytes()
-	gonode.Send(id, datas)
+func handleJoinRandomGame(peer *gen_lobby.LobbyPeer, opCode byte, datas *gunpeer.PeerDatas) {
+	room, err := gen_lobby.JoinRandomRoom(peer.PeerId())
+	if err != nil {
+		handleError(peer, opCode, err)
+		return
+	}
+	info, err := gonode.GetNodeInfo(room.NodeId)
+	if err != nil {
+		handleError(peer, opCode, err)
+		return
+	}
+	pub, ok := info.UsrDatas[toolkit.USRDATA_PUBDOMAIN]
+	if !ok {
+		pub = info.Url
+	}
+	gunpeer.SendResponse(peer.PeerId(), errorcode.Ok, opCode, map[byte]interface{}{
+		paramcode.GameId:  room.RoomId,
+		paramcode.Address: pub,
+	})
 }

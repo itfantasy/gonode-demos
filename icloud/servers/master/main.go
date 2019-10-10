@@ -9,6 +9,7 @@ import (
 	"github.com/itfantasy/gonode/utils/io"
 
 	"github.com/itfantasy/gonode-icloud/icloud/logics/master"
+	"github.com/itfantasy/gonode-toolkit/toolkit"
 	"github.com/itfantasy/gonode-toolkit/toolkit/gen_lobby"
 )
 
@@ -42,16 +43,22 @@ func (this *MasterServer) Start() {
 }
 func (this *MasterServer) OnConn(id string) {
 	fmt.Println("new conn !! " + id)
+	if gonode.IsPeer(id) {
+		master.HandleConn(id)
+	}
 }
 func (this *MasterServer) OnMsg(id string, msg []byte) {
-	if gonode.Label(id) == "room" {
-		master.HandleServerMsg(id, msg)
-	} else if gonode.IsCntId(id) {
+	if gonode.IsPeer(id) {
 		master.HandleMsg(id, msg)
+	} else if gonode.Label(id) == toolkit.LABEL_ROOM {
+		master.HandleServerMsg(id, msg)
 	}
 }
 func (this *MasterServer) OnClose(id string, reason error) {
-	fmt.Println("conn closed !! " + id)
+	fmt.Println("conn closed !! " + id + " -- reason:" + reason.Error())
+	if gonode.IsPeer(id) {
+		master.HandleClose(id)
+	}
 }
 
 func main() {
