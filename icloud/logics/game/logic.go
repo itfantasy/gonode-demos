@@ -11,11 +11,12 @@ import (
 	"github.com/itfantasy/gonode-icloud/icloud/opcode/cacheop"
 	"github.com/itfantasy/gonode-icloud/icloud/opcode/errorcode"
 	"github.com/itfantasy/gonode-icloud/icloud/opcode/evncode"
-	"github.com/itfantasy/gonode-icloud/icloud/opcode/gameparam"
+	//	"github.com/itfantasy/gonode-icloud/icloud/opcode/gameparam"
 	"github.com/itfantasy/gonode-icloud/icloud/opcode/paramcode"
 	//	"github.com/itfantasy/gonode-icloud/icloud/opcode/recvgroup"
 	"github.com/itfantasy/gonode/utils/stl"
 
+	"github.com/itfantasy/gonode-toolkit/toolkit"
 	"github.com/itfantasy/gonode-toolkit/toolkit/gen_room"
 )
 
@@ -71,7 +72,7 @@ func HandleClose(id string) {
 		return
 	}
 	if room.IsEmpty() {
-		gen_room.DisposeRoom(room.RoomId(), id)
+		gen_room.DisposeRoom(room.RoomId())
 	}
 	gen_room.RemovePeer(id)
 }
@@ -91,25 +92,15 @@ func handleCreateGame(peer *gen_room.RoomPeer, opCode byte, datas *gunpeer.PeerD
 		return
 	}
 
-	room, actor, err := gen_room.CreateRoom(peer.PeerId(), roomId)
+	room, actor, err := gen_room.CreateRoom(peer.PeerId(), toolkit.DEFAULT_LOBBY, roomId, 4) // TODO 4为临时逻辑, 默认大厅为临时逻辑
 	if err != nil {
 		handleError(peer, opCode, err)
 	}
 	peer.SetRoomId(room.RoomId())
 
-	hash := stl.NewHashTable()
-	list2 := stl.NewList(0)
-	hash.Set(gameparam.LobbyProperties, list2.Values())
-	hash.Set(gameparam.CleanupCacheOnLeave, true)
-	hash.Set(gameparam.MaxPlayers, byte(4))
-	hash.Set(gameparam.IsVisible, true)
-	hash.Set(gameparam.IsOpen, true)
-	hash.Set(gameparam.MasterClientId, room.MasterId())
-	hash.Set(gameparam.CleanupCacheOnLeave, true)
-
 	gunpeer.SendResponse(peer.PeerId(), errorcode.Ok, opCode, map[byte]interface{}{
 		paramcode.ActorNr:        actor.ActorNr(),
-		paramcode.GameProperties: hash.KeyValuePairs(),
+		paramcode.GameProperties: gunpeer.RoomToHash(room),
 		paramcode.Actors:         room.ActorsManager().GetAllActorNrs(),
 	})
 	pubJoinEvent(peer, actor, room)
@@ -128,18 +119,9 @@ func handleJoinGame(peer *gen_room.RoomPeer, opCode byte, datas *gunpeer.PeerDat
 	}
 	peer.SetRoomId(room.RoomId())
 
-	hash := stl.NewHashTable()
-	hash.Set(gameparam.LobbyProperties, true)
-	hash.Set(gameparam.CleanupCacheOnLeave, true)
-	hash.Set(gameparam.MaxPlayers, byte(4))
-	hash.Set(gameparam.IsVisible, true)
-	hash.Set(gameparam.IsOpen, true)
-	hash.Set(gameparam.MasterClientId, room.MasterId())
-	hash.Set(gameparam.CleanupCacheOnLeave, true)
-
 	gunpeer.SendResponse(peer.PeerId(), errorcode.Ok, opCode, map[byte]interface{}{
 		paramcode.ActorNr:        actor.ActorNr(),
-		paramcode.GameProperties: hash.KeyValuePairs(),
+		paramcode.GameProperties: gunpeer.RoomToHash(room),
 		paramcode.Actors:         room.ActorsManager().GetAllActorNrs(),
 	})
 

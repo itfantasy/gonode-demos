@@ -7,6 +7,8 @@ import (
 	"github.com/itfantasy/gonode"
 	"github.com/itfantasy/gonode-toolkit/toolkit/gen_room"
 	"github.com/itfantasy/gonode/core/binbuf"
+
+	"github.com/itfantasy/gonode-icloud/icloud/opcode/gameparam"
 )
 
 const _errconst string = "type matching failed.. "
@@ -231,5 +233,13 @@ func EventDatas(evnCode byte, datas map[byte]interface{}) ([]byte, error) {
 }
 
 func RoomToHash(room *gen_room.RoomEntity) map[interface{}]interface{} {
-	return nil
+	hash := make(map[interface{}]interface{})
+	list := make([]interface{}, 0, 0)
+	hash[gameparam.LobbyProperties] = list
+	hash[gameparam.CleanupCacheOnLeave] = true
+	hash[gameparam.MaxPlayers] = room.MaxPeers()
+	hash[gameparam.IsVisible] = true
+	hash[gameparam.IsOpen] = true
+	hash[gameparam.MasterClientId] = room.MasterId()
+	return hash
 }
