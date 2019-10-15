@@ -23,18 +23,14 @@ func (this *MasterServer) Setup() *gen_server.NodeInfo {
 		return nil
 	}
 	info := new(gen_lobby.LobbyServerInfo)
-
 	info.Id = conf.Get("node", "id")
 	info.Url = conf.Get("node", "url")
-
 	info.LogLevel = conf.Get("log", "loglevel")
 	info.LogComp = conf.Get("log", "logcomp")
-
 	info.RegComp = conf.Get("reg", "regcomp")
-
-	defaultRoomUrl := conf.Get("room", "defaulturl")
-	master.SetDefaultRoomUrl(defaultRoomUrl)
-
+	if err := gen_lobby.InitGameDB(conf.Get("gamedb", "comp")); err != nil {
+		return nil
+	}
 	return info.ExpandToNodeInfo()
 }
 

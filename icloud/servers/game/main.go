@@ -27,6 +27,10 @@ func (this *RoomServer) Setup() *gen_server.NodeInfo {
 	info.LogLevel = conf.Get("log", "loglevel")
 	info.LogComp = conf.Get("log", "logcomp")
 	info.RegComp = conf.Get("reg", "regcomp")
+	info.PubDomain = conf.Get("node", "pubdomain")
+	if err := gen_room.InitGameDB(conf.Get("gamedb", "comp")); err != nil {
+		return nil
+	}
 	return info.ExpandToNodeInfo()
 }
 func (this *RoomServer) Start() {
