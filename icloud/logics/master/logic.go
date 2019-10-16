@@ -53,6 +53,7 @@ func handleRemoveGameState(id string, opCode byte, parser *binbuf.BinParser) {
 }
 
 func HandleMsg(id string, msg []byte) {
+	gonode.Debug(msg)
 	opCode, datas, err := gunpeer.ParseMsg(msg)
 	if err != nil {
 		gonode.LogError(err)
@@ -82,7 +83,7 @@ func HandleMsg(id string, msg []byte) {
 }
 
 func handleError(peer *gen_lobby.LobbyPeer, opCode byte, err error) {
-	gonode.LogError(err)
+	gonode.LogError(err, gonode.Caller(1))
 }
 
 func handleAuthenticate(peer *gen_lobby.LobbyPeer, opCode byte, datas *gunpeer.PeerDatas) {
@@ -92,7 +93,7 @@ func handleAuthenticate(peer *gen_lobby.LobbyPeer, opCode byte, datas *gunpeer.P
 func handleCreateGame(peer *gen_lobby.LobbyPeer, opCode byte, datas *gunpeer.PeerDatas) {
 	room, err := gen_lobby.CreateRoom(peer.PeerId(), snowflake.Generate())
 	if err != nil {
-		handleError(peer, opCode, err)
+		handleError(peer, opCode, err) // TODO mongo数据读取错误
 		return
 	}
 	info, err := gonode.GetNodeInfo(room.NodeId)
@@ -126,7 +127,7 @@ func handleJoinGame(peer *gen_lobby.LobbyPeer, opCode byte, datas *gunpeer.PeerD
 		handleError(peer, opCode, err)
 		return
 	}
-	pub, ok := info.UsrDatas[toolkit.USRDATA_PUBDOMAIN]
+	pub, ok := gen_lobby.RoomPubDomain(info)
 	if !ok {
 		pub = info.Url
 	}
@@ -139,7 +140,8 @@ func handleJoinGame(peer *gen_lobby.LobbyPeer, opCode byte, datas *gunpeer.PeerD
 func handleJoinRandomGame(peer *gen_lobby.LobbyPeer, opCode byte, datas *gunpeer.PeerDatas) {
 	room, err := gen_lobby.JoinRandomRoom(peer.PeerId())
 	if err != nil {
-		handleError(peer, opCode, err)
+		//handleError(peer, opCode, err) // TODO mongo数据读取错误
+		gunpeer.SendResponse(peer.PeerId(), errorcode.NoMatchFound, opCode, map[byte]interface{}{})
 		return
 	}
 	info, err := gonode.GetNodeInfo(room.NodeId)
