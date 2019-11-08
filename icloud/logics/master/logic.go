@@ -83,7 +83,11 @@ func HandleMsg(id string, msg []byte) {
 }
 
 func handleError(peer *gen_lobby.LobbyPeer, opCode byte, err error) {
-	gonode.LogError(err, gonode.Caller(1))
+	errcode, _ := gonode.ErrInfo(err)
+	if errcode != 0 {
+		gunpeer.SendResponse(peer.PeerId(), int16(errcode), opCode, map[byte]interface{}{})
+	}
+	gonode.LogError(err.Error(), gonode.LogSource(1))
 }
 
 func handleAuthenticate(peer *gen_lobby.LobbyPeer, opCode byte, datas *gunpeer.PeerDatas) {
@@ -140,8 +144,7 @@ func handleJoinGame(peer *gen_lobby.LobbyPeer, opCode byte, datas *gunpeer.PeerD
 func handleJoinRandomGame(peer *gen_lobby.LobbyPeer, opCode byte, datas *gunpeer.PeerDatas) {
 	room, err := gen_lobby.JoinRandomRoom(peer.PeerId())
 	if err != nil {
-		//handleError(peer, opCode, err) // TODO mongo数据读取错误
-		gunpeer.SendResponse(peer.PeerId(), errorcode.NoMatchFound, opCode, map[byte]interface{}{})
+		handleError(peer, opCode, err)
 		return
 	}
 	info, err := gonode.GetNodeInfo(room.NodeId)

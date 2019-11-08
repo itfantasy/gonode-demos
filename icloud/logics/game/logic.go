@@ -25,6 +25,7 @@ func HandleConn(id string) {
 }
 
 func HandleMsg(id string, msg []byte) {
+
 	gonode.Debug(msg)
 	opCode, datas, err := gunpeer.ParseMsg(msg)
 	if err != nil {
@@ -192,5 +193,5 @@ func pubLeaveEvent(peer *gen_room.RoomPeer, actor *gen_room.Actor, room *gen_roo
 }
 
 func handleError(peer *gen_room.RoomPeer, opCode byte, err error) {
-	gonode.LogError(err, gonode.Caller(1))
+	gonode.LogError(err, gonode.LogSource(1))
 }
