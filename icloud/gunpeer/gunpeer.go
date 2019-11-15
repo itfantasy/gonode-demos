@@ -5,10 +5,10 @@ import (
 	"fmt"
 
 	"github.com/itfantasy/gonode"
+	"github.com/itfantasy/gonode-icloud/icloud/opcode/gameparam"
+	"github.com/itfantasy/gonode-icloud/icloud/opcode/paramcode"
 	"github.com/itfantasy/gonode-toolkit/toolkit/gen_room"
 	"github.com/itfantasy/gonode/core/binbuf"
-
-	"github.com/itfantasy/gonode-icloud/icloud/opcode/gameparam"
 )
 
 const _errconst string = "type matching failed.. "
@@ -72,7 +72,7 @@ func (p *PeerDatas) GetByte(key byte) (byte, bool) {
 	}
 	byteVal, ok := val.(byte)
 	if !ok {
-		p._errMsg = _errconst + fmt.Sprint(key) + "(byte)"
+		p._errMsg = _errconst + fmt.Sprint(key) + "(byte)" + ":" + fmt.Sprint(val)
 		return 0, false
 	}
 	return byteVal, true
@@ -188,8 +188,14 @@ func ParseMsg(msg []byte) (byte, *PeerDatas, error) {
 	opCode := parser.Byte()
 	for !parser.OverFlow() {
 		key := parser.Byte()
+		if key == paramcode.Data { // the eventdata at last
+			break
+		}
 		val := parser.Object()
 		datas.Set(key, val)
+	}
+	if parser.Error() != nil {
+		gonode.LogError(parser.ErrorInfo())
 	}
 	return opCode, datas, parser.Error()
 }
@@ -222,7 +228,11 @@ func EventDatas(evnCode byte, datas map[byte]interface{}) ([]byte, error) {
 	if datas != nil {
 		for k, v := range datas {
 			buf.PushByte(k)
-			buf.PushObject(v)
+			if k != paramcode.Data {
+				buf.PushObject(v)
+			} else {
+				buf.PushBytes(v.([]byte))
+			}
 		}
 	}
 	bytes, err := buf.Bytes()
