@@ -5,16 +5,18 @@ import (
 	"fmt"
 
 	"github.com/itfantasy/gonode"
+	"github.com/itfantasy/gonode/core/binbuf"
+	"github.com/itfantasy/gonode/utils/snowflake"
+
+	"github.com/itfantasy/gonode-toolkit/toolkit"
+	"github.com/itfantasy/gonode-toolkit/toolkit/gen_lobby"
+
 	"github.com/itfantasy/gonode-icloud/icloud/gunpeer"
+	"github.com/itfantasy/gonode-icloud/icloud/gunpeer/retcode"
 	"github.com/itfantasy/gonode-icloud/icloud/opcode"
 	"github.com/itfantasy/gonode-icloud/icloud/opcode/errorcode"
 	"github.com/itfantasy/gonode-icloud/icloud/opcode/paramcode"
 	"github.com/itfantasy/gonode-icloud/icloud/opcode/servereventcode"
-	"github.com/itfantasy/gonode/core/binbuf"
-
-	"github.com/itfantasy/gonode-toolkit/toolkit"
-	"github.com/itfantasy/gonode-toolkit/toolkit/gen_lobby"
-	"github.com/itfantasy/gonode/utils/snowflake"
 )
 
 func HandleConn(id string) {
@@ -144,7 +146,7 @@ func handleJoinGame(peer *gen_lobby.LobbyPeer, opCode byte, datas *gunpeer.PeerD
 func handleJoinRandomGame(peer *gen_lobby.LobbyPeer, opCode byte, datas *gunpeer.PeerDatas) {
 	room, err := gen_lobby.JoinRandomRoom(peer.PeerId())
 	if err != nil {
-		handleError(peer, opCode, err)
+		handleError(peer, opCode, retcode.Err_NoMatchFound)
 		return
 	}
 	info, err := gonode.GetNodeInfo(room.NodeId)

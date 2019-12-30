@@ -4,20 +4,21 @@ import (
 	"errors"
 
 	"github.com/itfantasy/gonode"
+	"github.com/itfantasy/gonode/utils/stl"
+
+	"github.com/itfantasy/gonode-toolkit/toolkit"
+	"github.com/itfantasy/gonode-toolkit/toolkit/gen_room"
 
 	"github.com/itfantasy/gonode-icloud/icloud/gunpeer"
+	"github.com/itfantasy/gonode-icloud/icloud/gunpeer/retcode"
 	"github.com/itfantasy/gonode-icloud/icloud/opcode"
 	"github.com/itfantasy/gonode-icloud/icloud/opcode/actorparam"
 	"github.com/itfantasy/gonode-icloud/icloud/opcode/cacheop"
 	"github.com/itfantasy/gonode-icloud/icloud/opcode/errorcode"
 	"github.com/itfantasy/gonode-icloud/icloud/opcode/evncode"
-	//	"github.com/itfantasy/gonode-icloud/icloud/opcode/gameparam"
 	"github.com/itfantasy/gonode-icloud/icloud/opcode/paramcode"
+	//	"github.com/itfantasy/gonode-icloud/icloud/opcode/gameparam"
 	//	"github.com/itfantasy/gonode-icloud/icloud/opcode/recvgroup"
-	"github.com/itfantasy/gonode/utils/stl"
-
-	"github.com/itfantasy/gonode-toolkit/toolkit"
-	"github.com/itfantasy/gonode-toolkit/toolkit/gen_room"
 )
 
 func HandleConn(id string) {
@@ -117,7 +118,8 @@ func handleJoinGame(peer *gen_room.RoomPeer, opCode byte, datas *gunpeer.PeerDat
 
 	room, actor, err := gen_room.JoinRoom(peer.PeerId(), roomId)
 	if err != nil {
-		handleError(peer, opCode, err)
+		handleError(peer, opCode, retcode.Err_NoMatchFound)
+		return
 	}
 	peer.SetRoomId(room.RoomId())
 
