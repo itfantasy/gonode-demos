@@ -95,7 +95,7 @@ func handleCreateGame(peer *gen_room.RoomPeer, opCode byte, datas *gunpeer.PeerD
 		return
 	}
 
-	room, actor, err := gen_room.CreateRoom(peer.PeerId(), toolkit.DEFAULT_LOBBY, roomId, 4) // TODO 4为临时逻辑, 默认大厅为临时逻辑
+	room, actor, err := gen_room.CreateRoom(peer.PeerId(), roomId, toolkit.DEFAULT_LOBBY, 4) // TODO 4为临时逻辑, 默认大厅为临时逻辑
 	if err != nil {
 		handleError(peer, opCode, err)
 	}
