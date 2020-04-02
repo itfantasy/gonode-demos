@@ -170,7 +170,7 @@ func pubJoinEvent(peer *gen_room.RoomPeer, actor *gen_room.Actor, room *gen_room
 	hashTable.Set(actorparam.Nickname, "")
 
 	evnDatas, err := gunpeer.EventDatas(evncode.Join, map[byte]interface{}{
-		paramcode.ActorProperties: hashTable.KeyValuePairs(),
+		paramcode.ActorProperties: hashTable.Raw(),
 		paramcode.ActorNr:         actor.ActorNr(),
 		paramcode.Actors:          room.ActorsManager().GetAllActorNrs(),
 	})

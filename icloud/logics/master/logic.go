@@ -85,7 +85,7 @@ func HandleMsg(id string, msg []byte) {
 }
 
 func handleError(peer *gen_lobby.LobbyPeer, opCode byte, err error) {
-	errcode, _ := gonode.ErrInfo(err)
+	errcode, _ := gonode.ErrorInfo(err)
 	if errcode != 0 {
 		gunpeer.SendResponse(peer.PeerId(), int16(errcode), opCode, map[byte]interface{}{})
 	}

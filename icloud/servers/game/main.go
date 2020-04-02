@@ -15,7 +15,7 @@ import (
 type RoomServer struct {
 }
 
-func (this *RoomServer) Setup() *gen_server.NodeInfo {
+func (r *RoomServer) Setup() *gen_server.NodeInfo {
 	conf, err := ini.Load(io.CurDir() + "conf.ini")
 	if err != nil {
 		fmt.Println(err)
@@ -33,21 +33,21 @@ func (this *RoomServer) Setup() *gen_server.NodeInfo {
 	}
 	return info.ExpandToNodeInfo()
 }
-func (this *RoomServer) Start() {
+func (r *RoomServer) Start() {
 
 }
-func (this *RoomServer) OnConn(id string) {
+func (r *RoomServer) OnConn(id string) {
 	fmt.Println("new conn !! " + id)
 	if gonode.IsPeer(id) {
 		game.HandleConn(id)
 	}
 }
-func (this *RoomServer) OnMsg(id string, msg []byte) {
+func (r *RoomServer) OnMsg(id string, msg []byte) {
 	if gonode.IsPeer(id) {
 		game.HandleMsg(id, msg)
 	}
 }
-func (this *RoomServer) OnClose(id string, reason error) {
+func (r *RoomServer) OnClose(id string, reason error) {
 	fmt.Println("conn closed !! " + id + " -- reason:" + reason.Error())
 	if gonode.IsPeer(id) {
 		game.HandleClose(id)

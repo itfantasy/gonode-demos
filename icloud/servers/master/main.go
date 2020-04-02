@@ -16,7 +16,7 @@ import (
 type MasterServer struct {
 }
 
-func (this *MasterServer) Setup() *gen_server.NodeInfo {
+func (m *MasterServer) Setup() *gen_server.NodeInfo {
 	conf, err := ini.Load(io.CurDir() + "conf.ini")
 	if err != nil {
 		fmt.Println(err)
@@ -34,23 +34,23 @@ func (this *MasterServer) Setup() *gen_server.NodeInfo {
 	return info.ExpandToNodeInfo()
 }
 
-func (this *MasterServer) Start() {
+func (m *MasterServer) Start() {
 
 }
-func (this *MasterServer) OnConn(id string) {
+func (m *MasterServer) OnConn(id string) {
 	fmt.Println("new conn !! " + id)
 	if gonode.IsPeer(id) {
 		master.HandleConn(id)
 	}
 }
-func (this *MasterServer) OnMsg(id string, msg []byte) {
+func (m *MasterServer) OnMsg(id string, msg []byte) {
 	if gonode.IsPeer(id) {
 		master.HandleMsg(id, msg)
 	} else if gonode.Label(id) == toolkit.LABEL_ROOM {
 		master.HandleServerMsg(id, msg)
 	}
 }
-func (this *MasterServer) OnClose(id string, reason error) {
+func (m *MasterServer) OnClose(id string, reason error) {
 	fmt.Println("conn closed !! " + id + " -- reason:" + reason.Error())
 	if gonode.IsPeer(id) {
 		master.HandleClose(id)
