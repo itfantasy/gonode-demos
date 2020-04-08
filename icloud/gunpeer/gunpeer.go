@@ -3,11 +3,10 @@ package gunpeer
 import (
 	"errors"
 	"fmt"
+	"reflect"
 
 	"github.com/itfantasy/gonode"
-	"github.com/itfantasy/gonode-icloud/icloud/opcode/gameparam"
 	"github.com/itfantasy/gonode-icloud/icloud/opcode/paramcode"
-	"github.com/itfantasy/gonode-toolkit/toolkit/gen_room"
 	"github.com/itfantasy/gonode/core/binbuf"
 )
 
@@ -221,6 +220,17 @@ func SendResponse(peerId string, retCode int16, opCode byte, datas map[byte]inte
 	}
 }
 
+func SendEvent(peerId string, evnCode byte, datas map[byte]interface{}) {
+	bytes, err := EventDatas(evnCode, datas)
+	if err != nil {
+		gonode.LogError(err)
+		return
+	}
+	if err := gonode.Send(peerId, bytes); err != nil {
+		gonode.LogError(err)
+	}
+}
+
 func EventDatas(evnCode byte, datas map[byte]interface{}) ([]byte, error) {
 	buf := binbuf.BuildBuffer(1024)
 	buf.PushByte(1)
@@ -242,14 +252,24 @@ func EventDatas(evnCode byte, datas map[byte]interface{}) ([]byte, error) {
 	return bytes, nil
 }
 
-func RoomToHash(room *gen_room.RoomEntity) map[interface{}]interface{} {
-	hash := make(map[interface{}]interface{})
-	list := make([]interface{}, 0, 0)
-	hash[gameparam.LobbyProperties] = list
-	hash[gameparam.CleanupCacheOnLeave] = true
-	hash[gameparam.MaxPlayers] = room.MaxPeers()
-	hash[gameparam.IsVisible] = true
-	hash[gameparam.IsOpen] = true
-	hash[gameparam.MasterClientId] = room.MasterId()
-	return hash
+func MmoEventDatas(evnCode byte, data interface{}) ([]byte, error) {
+	buf := binbuf.BuildBuffer(1024)
+	buf.PushByte(1)
+	buf.PushByte(evnCode)
+	if data != nil {
+		t := reflect.TypeOf(data)
+		v := reflect.ValueOf(data)
+		for i := 0; i < t.NumField(); i++ {
+			f := t.Field(i)
+			if code, ok := paramcode.FieldNameToCode(f.Name); ok {
+				buf.PushByte(code)
+				buf.PushObject(v.Field(i).Interface())
+			}
+		}
+	}
+	bytes, err := buf.Bytes()
+	if err != nil {
+		return nil, err
+	}
+	return bytes, nil
 }

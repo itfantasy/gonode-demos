@@ -17,7 +17,7 @@ type MasterServer struct {
 }
 
 func (m *MasterServer) Setup() *gen_server.NodeInfo {
-	conf, err := ini.Load(io.CurDir() + "conf.ini")
+	conf, err := ini.Load(io.CurrentDir() + "conf.ini")
 	if err != nil {
 		fmt.Println(err)
 		return nil

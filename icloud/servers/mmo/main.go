@@ -8,53 +8,52 @@ import (
 	"github.com/itfantasy/gonode/utils/ini"
 	"github.com/itfantasy/gonode/utils/io"
 
-	"github.com/itfantasy/gonode-icloud/icloud/logics/game"
-	"github.com/itfantasy/gonode-toolkit/toolkit/gen_room"
+	"github.com/itfantasy/gonode-icloud/icloud/logics/mmo"
+	"github.com/itfantasy/gonode-toolkit/toolkit/gen_mmo"
 )
 
-type RoomServer struct {
+type MmoServer struct {
+	handler *mmo.MmoHandler
 }
 
-func (r *RoomServer) Setup() *gen_server.NodeInfo {
+func (m *MmoServer) Setup() *gen_server.NodeInfo {
 	conf, err := ini.Load(io.CurrentDir() + "conf.ini")
 	if err != nil {
 		fmt.Println(err)
 		return nil
 	}
-	info := new(gen_room.RoomServerInfo)
+	info := new(gen_mmo.MmoServerInfo)
 	info.Id = conf.Get("node", "id")
 	info.Url = conf.Get("node", "url")
 	info.LogLevel = conf.Get("log", "loglevel")
 	info.LogComp = conf.Get("log", "logcomp")
 	info.RegComp = conf.Get("reg", "regcomp")
-	info.PubDomain = conf.Get("node", "pubdomain")
-	if err := gen_room.InitGameDB(conf.Get("gamedb", "comp")); err != nil {
-		return nil
-	}
+
+	m.handler = new(mmo.MmoHandler)
 	return info.ExpandToNodeInfo()
 }
-func (r *RoomServer) Start() {
+
+func (m *MmoServer) Start() {
 
 }
-func (r *RoomServer) OnConn(id string) {
-	fmt.Println("new conn !! " + id)
+func (m *MmoServer) OnConn(id string) {
 	if gonode.IsPeer(id) {
-		game.HandleConn(id)
+		m.handler.HandleConn(id)
 	}
 }
-func (r *RoomServer) OnMsg(id string, msg []byte) {
+func (m *MmoServer) OnMsg(id string, msg []byte) {
 	if gonode.IsPeer(id) {
-		game.HandleMsg(id, msg)
+		m.handler.HandleMsg(id, msg)
 	}
 }
-func (r *RoomServer) OnClose(id string, reason error) {
+func (m *MmoServer) OnClose(id string, reason error) {
 	fmt.Println("conn closed !! " + id + " -- reason:" + reason.Error())
 	if gonode.IsPeer(id) {
-		game.HandleClose(id)
+		m.handler.HandleClose(id)
 	}
 }
 
 func main() {
-	gonode.Bind(new(RoomServer))
+	gonode.Bind(new(MmoServer))
 	gonode.Launch()
 }

@@ -172,8 +172,8 @@ const (
 	EventCode              = 60
 	Username               = 91
 	OldPosition            = 92
-	Position               = 93
-	Properties             = 94
+	NewPosition            = 93 // mmo
+	ItemProperties         = 94 // mmo
 	ItemId                 = 95
 	ItemType               = 96
 	PropertiesRevision     = 97
@@ -198,3 +198,43 @@ const (
 	OldRotation            = 117
 	Remove                 = 118
 )
+
+var _fieldMap map[string]byte = nil
+
+func init() {
+	_fieldMap = map[string]byte{
+		"EventCode":              EventCode,
+		"Username":               Username,
+		"OldPosition":            OldPosition,
+		"Position":               NewPosition,
+		"Properties":             ItemProperties,
+		"ItemId":                 ItemId,
+		"ItemType":               ItemType,
+		"PropertiesRevision":     PropertiesRevision,
+		"CustomEventCode":        CustomEventCode,
+		"EventData":              EventData,
+		"BoundingBox":            BoundingBox,
+		"TileDimensions":         TileDimensions,
+		"WorldName":              WorldName,
+		"ViewDistanceEnter":      ViewDistanceEnter,
+		"PropertiesSet":          PropertiesSet,
+		"PropertiesUnset":        PropertiesUnset,
+		"EventReliability":       EventReliability,
+		"EventReceiver":          EventReceiver,
+		"Subscribe":              Subscribe,
+		"ViewDistanceExit":       ViewDistanceExit,
+		"InterestAreaId":         InterestAreaId,
+		"CounterReceiveInterval": CounterReceiveInterval,
+		"CounterName":            CounterName,
+		"CounterTimeStamps":      CounterTimeStamps,
+		"CounterValues":          CounterValues,
+		"Rotation":               Rotation,
+		"OldRotation":            OldRotation,
+		"Remove":                 Remove,
+	}
+}
+
+func FieldNameToCode(field string) (byte, bool) {
+	code, ok := _fieldMap[field]
+	return code, ok
+}

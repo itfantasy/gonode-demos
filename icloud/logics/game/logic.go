@@ -197,3 +197,15 @@ func pubLeaveEvent(peer *gen_room.RoomPeer, actor *gen_room.Actor, room *gen_roo
 func handleError(peer *gen_room.RoomPeer, opCode byte, err error) {
 	gonode.LogError(err, gonode.LogSource(1))
 }
+
+func RoomToHash(room *gen_room.RoomEntity) map[interface{}]interface{} {
+	hash := make(map[interface{}]interface{})
+	list := make([]interface{}, 0, 0)
+	hash[gameparam.LobbyProperties] = list
+	hash[gameparam.CleanupCacheOnLeave] = true
+	hash[gameparam.MaxPlayers] = room.MaxPeers()
+	hash[gameparam.IsVisible] = true
+	hash[gameparam.IsOpen] = true
+	hash[gameparam.MasterClientId] = room.MasterId()
+	return hash
+}

@@ -4,7 +4,27 @@ const (
 	/// <summary>
 	///   Specifies that no event code is set.
 	/// </summary>
-	NoCodeSet byte = 0
+	NoCodeSet byte = iota
+
+	ItemDestroyed
+
+	ItemMoved
+
+	ItemPropertiesSet
+
+	WorldExited
+
+	ItemSubscribed
+
+	ItemUnsubscribed
+
+	ItemProperties
+
+	RadarUpdate
+
+	CounterData
+
+	ItemGeneric
 
 	/// <summary>
 	///   The event code for the <see cref="JoinEvent"/>.

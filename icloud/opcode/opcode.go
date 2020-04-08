@@ -29,7 +29,7 @@ const (
 	ExitWorld          = 92
 	Move               = 93
 	RaiseGenericEvent  = 94
-	SetProperties      = 95
+	SetItemProperties  = 95 // mmo
 	SpawnItem          = 96
 	DestroyItem        = 97
 	SubscribeItem      = 98 //// Manually subscribes item (does not affect interest area updates).
@@ -39,7 +39,7 @@ const (
 	DetachInterestArea = 102
 	AddInterestArea    = 103
 	RemoveInterestArea = 104
-	GetProperties      = 105
+	GetItemProperties  = 105 // mmo
 	MoveInterestArea   = 106
 	RadarSubscribe     = 107
 	UnsubscribeCounter = 108
