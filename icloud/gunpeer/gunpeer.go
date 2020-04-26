@@ -3,7 +3,6 @@ package gunpeer
 import (
 	"errors"
 	"fmt"
-	"reflect"
 
 	"github.com/itfantasy/gonode"
 	"github.com/itfantasy/gonode-icloud/icloud/opcode/paramcode"
@@ -181,6 +180,10 @@ func (p *PeerDatas) GetHash(key byte) (map[interface{}]interface{}, bool) {
 	return hashVal, true
 }
 
+func (p *PeerDatas) Println() {
+	fmt.Println(p._map)
+}
+
 func ParseMsg(msg []byte) (byte, *PeerDatas, error) {
 	datas := NewPeerDatas(msg)
 	parser := binbuf.BuildParser(msg, 0)
@@ -242,28 +245,6 @@ func EventDatas(evnCode byte, datas map[byte]interface{}) ([]byte, error) {
 				buf.PushObject(v)
 			} else {
 				buf.PushBytes(v.([]byte))
-			}
-		}
-	}
-	bytes, err := buf.Bytes()
-	if err != nil {
-		return nil, err
-	}
-	return bytes, nil
-}
-
-func MmoEventDatas(evnCode byte, data interface{}) ([]byte, error) {
-	buf := binbuf.BuildBuffer(1024)
-	buf.PushByte(1)
-	buf.PushByte(evnCode)
-	if data != nil {
-		t := reflect.TypeOf(data)
-		v := reflect.ValueOf(data)
-		for i := 0; i < t.NumField(); i++ {
-			f := t.Field(i)
-			if code, ok := paramcode.FieldNameToCode(f.Name); ok {
-				buf.PushByte(code)
-				buf.PushObject(v.Field(i).Interface())
 			}
 		}
 	}

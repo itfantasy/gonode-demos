@@ -2,6 +2,7 @@ package mmo
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/itfantasy/gonode"
 	"github.com/itfantasy/gonode-toolkit/toolkit/gen_mmo"
@@ -21,11 +22,14 @@ func (m *MmoHandler) HandleConn(id string) {
 }
 
 func (m *MmoHandler) HandleClose(id string) {
+	peer, ok := gen_mmo.GetPeer(id)
+	if ok {
+		gen_mmo.ExitWorld(peer.PeerId())
+	}
 	gen_mmo.RemovePeer(id)
 }
 
 func (m *MmoHandler) HandleMsg(id string, msg []byte) {
-	gonode.Debug(msg)
 	opCode, datas, err := gunpeer.ParseMsg(msg)
 	if err != nil {
 		gonode.LogError(err)
@@ -99,11 +103,11 @@ func (m *MmoHandler) HandleMsg(id string, msg []byte) {
 func GetVector(p *gunpeer.PeerDatas, key byte) (*gen_mmo.Vector, bool) {
 	val, ok := p.Get(key)
 	if !ok {
-		return nil, false
+		return gen_mmo.NewVector(0, 0, 0), false
 	}
 	result, ok := val.(*gen_mmo.Vector)
 	if !ok {
-		return nil, false
+		return gen_mmo.NewVector(0, 0, 0), false
 	}
 	return result, true
 }
@@ -111,11 +115,11 @@ func GetVector(p *gunpeer.PeerDatas, key byte) (*gen_mmo.Vector, bool) {
 func GetBoundingBox(p *gunpeer.PeerDatas, key byte) (*gen_mmo.BoundingBox, bool) {
 	val, ok := p.Get(key)
 	if !ok {
-		return nil, false
+		return gen_mmo.NewBoundingBox(gen_mmo.NewVector(0, 0, 0), gen_mmo.NewVector(0, 0, 0)), false
 	}
 	result, ok := val.(*gen_mmo.BoundingBox)
 	if !ok {
-		return nil, false
+		return gen_mmo.NewBoundingBox(gen_mmo.NewVector(0, 0, 0), gen_mmo.NewVector(0, 0, 0)), false
 	}
 	return result, true
 }
@@ -133,12 +137,12 @@ func (m *MmoHandler) handleCreateWorld(peer *gen_mmo.MmoPeer, opCode byte, datas
 	boundingBox, _ := GetBoundingBox(datas, paramcode.BoundingBox)
 	tileDimensions, _ := GetVector(datas, paramcode.TileDimensions)
 
-	_, err := gen_mmo.CreateWorld(peer.PeerId(), worldName, boundingBox, tileDimensions)
+	world, err := gen_mmo.CreateWorld(peer.PeerId(), worldName, boundingBox, tileDimensions)
 	if err != nil {
 		m.handleError(peer, opCode, err)
 	} else {
 		gunpeer.SendResponse(peer.PeerId(), errorcode.Ok, opCode, map[byte]interface{}{
-			paramcode.WorldName: worldName,
+			paramcode.WorldName: world.Name(),
 		})
 	}
 }
@@ -157,6 +161,7 @@ func (m *MmoHandler) handleEnterWorld(peer *gen_mmo.MmoPeer, opCode byte, datas 
 	if err != nil {
 		m.handleError(peer, opCode, err)
 	} else {
+		fmt.Println("进入世界:" + peer.PeerId() + "----->" + peer.AvatarId())
 		gunpeer.SendResponse(peer.PeerId(), errorcode.Ok, opCode, map[byte]interface{}{
 			paramcode.WorldName:      world.Name(),
 			paramcode.BoundingBox:    world.Area(),
@@ -176,13 +181,13 @@ func (m *MmoHandler) handleMove(peer *gen_mmo.MmoPeer, opCode byte, datas *gunpe
 	position, _ := GetVector(datas, paramcode.NewPosition)
 	rotation, _ := GetVector(datas, paramcode.Rotation)
 
-	item, err := gen_mmo.Move(peer.PeerId(), itemId, position, rotation)
+	_, err := gen_mmo.MoveItem(peer.PeerId(), itemId, position, rotation)
 	if err != nil {
 		m.handleError(peer, opCode, err)
 	} else {
-		gunpeer.SendResponse(peer.PeerId(), errorcode.Ok, opCode, map[byte]interface{}{
-			paramcode.ItemId: item.Id(),
-		})
+		//		gunpeer.SendResponse(peer.PeerId(), errorcode.Ok, opCode, map[byte]interface{}{
+		//			paramcode.ItemId: item.Id(),
+		//		})
 	}
 }
 
@@ -205,15 +210,17 @@ func (m *MmoHandler) handleRaiseGenericEvent(peer *gen_mmo.MmoPeer, opCode byte,
 func (m *MmoHandler) handleSetProperties(peer *gen_mmo.MmoPeer, opCode byte, datas *gunpeer.PeerDatas) {
 	itemId, _ := datas.GetString(paramcode.ItemId)
 	propertiesSet, _ := datas.GetHash(paramcode.PropertiesSet)
+	fmt.Println("属性设置:" + itemId)
+	fmt.Println(propertiesSet)
 	propertiesUnset, _ := datas.GetArray(paramcode.PropertiesUnset)
 
-	item, err := gen_mmo.SetProperties(peer.PeerId(), itemId, propertiesSet, propertiesUnset)
+	_, err := gen_mmo.SetProperties(peer.PeerId(), itemId, propertiesSet, propertiesUnset)
 	if err != nil {
 		m.handleError(peer, opCode, err)
 	} else {
-		gunpeer.SendResponse(peer.PeerId(), errorcode.Ok, opCode, map[byte]interface{}{
-			paramcode.ItemId: item.Id(),
-		})
+		//		gunpeer.SendResponse(peer.PeerId(), errorcode.Ok, opCode, map[byte]interface{}{
+		//			paramcode.ItemId: item.Id(),
+		//		})
 	}
 }
 
@@ -280,13 +287,13 @@ func (m *MmoHandler) handleSetViewDistance(peer *gen_mmo.MmoPeer, opCode byte, d
 	viewDistanceEnter, _ := GetVector(datas, paramcode.ViewDistanceEnter)
 	viewDistanceExit, _ := GetVector(datas, paramcode.ViewDistanceExit)
 
-	interestArea, err := gen_mmo.SetViewDistance(peer.PeerId(), interestAreaId, viewDistanceEnter, viewDistanceExit)
+	_, err := gen_mmo.SetViewDistance(peer.PeerId(), interestAreaId, viewDistanceEnter, viewDistanceExit)
 	if err != nil {
 		m.handleError(peer, opCode, err)
 	} else {
-		gunpeer.SendResponse(peer.PeerId(), errorcode.Ok, opCode, map[byte]interface{}{
-			paramcode.InterestAreaId: interestArea.Id(),
-		})
+		//		gunpeer.SendResponse(peer.PeerId(), errorcode.Ok, opCode, map[byte]interface{}{
+		//			paramcode.InterestAreaId: interestArea.Id(),
+		//		})
 	}
 }
 
@@ -352,20 +359,13 @@ func (m *MmoHandler) handleGetProperties(peer *gen_mmo.MmoPeer, opCode byte, dat
 	itemId, _ := datas.GetString(paramcode.ItemId)
 	propertiesRevision, _ := datas.GetInt(paramcode.PropertiesRevision)
 
-	properties, err := gen_mmo.GetProperties(peer.PeerId(), itemId, int(propertiesRevision))
+	_, err := gen_mmo.GetProperties(peer.PeerId(), itemId, int(propertiesRevision))
 	if err != nil {
 		m.handleError(peer, opCode, err)
 	} else {
-		if properties.Updated {
-			gunpeer.SendEvent(peer.PeerId(), evncode.ItemProperties, map[byte]interface{}{
-				paramcode.ItemId:             properties.ItemId,
-				paramcode.PropertiesRevision: properties.PropertiesRevision,
-				paramcode.PropertiesSet:      properties.PropertiesSet,
-			})
-		}
-		gunpeer.SendResponse(peer.PeerId(), errorcode.Ok, opCode, map[byte]interface{}{
-			paramcode.ItemId: itemId,
-		})
+		//		gunpeer.SendResponse(peer.PeerId(), errorcode.Ok, opCode, map[byte]interface{}{
+		//			paramcode.ItemId: itemId,
+		//		})
 	}
 }
 
@@ -405,6 +405,7 @@ func (m *MmoHandler) OnItemGenericEvent(peer *gen_mmo.MmoPeer, event *gen_mmo.It
 	})
 }
 func (m *MmoHandler) OnItemDestroyed(peer *gen_mmo.MmoPeer, itemId string) {
+	fmt.Println("item销毁:" + itemId)
 	gunpeer.SendEvent(peer.PeerId(), evncode.ItemDestroyed, map[byte]interface{}{
 		paramcode.ItemId: itemId,
 	})
@@ -418,7 +419,18 @@ func (m *MmoHandler) OnItemMoved(peer *gen_mmo.MmoPeer, event *gen_mmo.ItemMoved
 		paramcode.Rotation:    event.Rotation,
 	})
 }
+func (m *MmoHandler) OnItemProperties(peer *gen_mmo.MmoPeer, event *gen_mmo.ItemProperties) {
+	fmt.Println("item属性同步:" + peer.AvatarId() + "------>" + event.ItemId)
+	fmt.Println(event)
+	gunpeer.SendEvent(peer.PeerId(), evncode.ItemProperties, map[byte]interface{}{
+		paramcode.ItemId:             event.ItemId,
+		paramcode.PropertiesRevision: event.PropertiesRevision,
+		paramcode.PropertiesSet:      event.PropertiesSet,
+	})
+}
 func (m *MmoHandler) OnItemPropertiesSet(peer *gen_mmo.MmoPeer, event *gen_mmo.ItemPropertiesSet) {
+	fmt.Println("item属性同步:" + peer.AvatarId() + "------>" + event.ItemId)
+	fmt.Println(event)
 	gunpeer.SendEvent(peer.PeerId(), evncode.ItemPropertiesSet, map[byte]interface{}{
 		paramcode.ItemId:             event.ItemId,
 		paramcode.PropertiesRevision: event.PropertiesRevision,
@@ -427,11 +439,13 @@ func (m *MmoHandler) OnItemPropertiesSet(peer *gen_mmo.MmoPeer, event *gen_mmo.I
 	})
 }
 func (m *MmoHandler) OnWorldExited(peer *gen_mmo.MmoPeer, worldName string) {
+	fmt.Println("退出世界:" + peer.PeerId() + "----->" + peer.AvatarId())
 	gunpeer.SendEvent(peer.PeerId(), evncode.WorldExited, map[byte]interface{}{
 		paramcode.WorldName: worldName,
 	})
 }
 func (m *MmoHandler) OnItemSubscribed(peer *gen_mmo.MmoPeer, event *gen_mmo.ItemSubscribed) {
+	fmt.Println("item订阅:" + peer.AvatarId() + "------>" + event.ItemId)
 	gunpeer.SendEvent(peer.PeerId(), evncode.ItemSubscribed, map[byte]interface{}{
 		paramcode.InterestAreaId:     event.InterestAreaId,
 		paramcode.ItemId:             event.ItemId,
@@ -442,6 +456,7 @@ func (m *MmoHandler) OnItemSubscribed(peer *gen_mmo.MmoPeer, event *gen_mmo.Item
 	})
 }
 func (m *MmoHandler) OnItemUnsubscribed(peer *gen_mmo.MmoPeer, event *gen_mmo.ItemUnsubscribed) {
+	fmt.Println("item退订:" + peer.AvatarId() + "------>" + event.ItemId)
 	gunpeer.SendEvent(peer.PeerId(), evncode.ItemUnsubscribed, map[byte]interface{}{
 		paramcode.InterestAreaId: event.InterestAreaId,
 		paramcode.ItemId:         event.ItemId,
