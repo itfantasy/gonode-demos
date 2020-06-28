@@ -5,8 +5,8 @@ import (
 
 	"github.com/itfantasy/gonode"
 	"github.com/itfantasy/gonode/behaviors/gen_server"
-	"github.com/itfantasy/gonode/utils/ini"
 	"github.com/itfantasy/gonode/utils/io"
+	"github.com/itfantasy/gonode/utils/yaml"
 
 	"github.com/itfantasy/gonode-icloud/icloud/logics/game"
 	"github.com/itfantasy/gonode-toolkit/toolkit/gen_room"
@@ -16,19 +16,18 @@ type RoomServer struct {
 }
 
 func (r *RoomServer) Setup() *gen_server.NodeInfo {
-	conf, err := ini.Load(io.CurrentDir() + "conf.ini")
+	conf, err := io.LoadFile(io.CurrentDir() + "conf.yaml")
 	if err != nil {
 		fmt.Println(err)
 		return nil
 	}
 	info := new(gen_room.RoomServerInfo)
-	info.Id = conf.Get("node", "id")
-	info.Url = conf.Get("node", "url")
-	info.LogLevel = conf.Get("log", "loglevel")
-	info.LogComp = conf.Get("log", "logcomp")
-	info.RegComp = conf.Get("reg", "regcomp")
-	info.PubDomain = conf.Get("node", "pubdomain")
-	if err := gen_room.InitGameDB(conf.Get("gamedb", "comp")); err != nil {
+	if err := yaml.Unmarshal(conf, info); err != nil {
+		fmt.Println(err)
+		return nil
+	}
+	if err := gen_room.InitGameDB(info.GameDB); err != nil {
+		fmt.Println(err)
 		return nil
 	}
 	return info.ExpandToNodeInfo()

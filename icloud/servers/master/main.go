@@ -5,8 +5,8 @@ import (
 
 	"github.com/itfantasy/gonode"
 	"github.com/itfantasy/gonode/behaviors/gen_server"
-	"github.com/itfantasy/gonode/utils/ini"
 	"github.com/itfantasy/gonode/utils/io"
+	"github.com/itfantasy/gonode/utils/yaml"
 
 	"github.com/itfantasy/gonode-icloud/icloud/logics/master"
 	"github.com/itfantasy/gonode-toolkit/toolkit"
@@ -17,18 +17,18 @@ type MasterServer struct {
 }
 
 func (m *MasterServer) Setup() *gen_server.NodeInfo {
-	conf, err := ini.Load(io.CurrentDir() + "conf.ini")
+	conf, err := io.LoadFile(io.CurrentDir() + "conf.yaml")
 	if err != nil {
 		fmt.Println(err)
 		return nil
 	}
 	info := new(gen_lobby.LobbyServerInfo)
-	info.Id = conf.Get("node", "id")
-	info.Url = conf.Get("node", "url")
-	info.LogLevel = conf.Get("log", "loglevel")
-	info.LogComp = conf.Get("log", "logcomp")
-	info.RegComp = conf.Get("reg", "regcomp")
-	if err := gen_lobby.InitGameDB(conf.Get("gamedb", "comp")); err != nil {
+	if err := yaml.Unmarshal(conf, info); err != nil {
+		fmt.Println(err)
+		return nil
+	}
+	if err := gen_lobby.InitGameDB(info.GameDB); err != nil {
+		fmt.Println(err)
 		return nil
 	}
 	return info.ExpandToNodeInfo()
@@ -37,23 +37,23 @@ func (m *MasterServer) Setup() *gen_server.NodeInfo {
 func (m *MasterServer) Start() {
 
 }
-func (m *MasterServer) OnConn(id string) {
-	fmt.Println("new conn !! " + id)
-	if gonode.IsPeer(id) {
-		master.HandleConn(id)
+func (m *MasterServer) OnConn(nodeid string) {
+	fmt.Println("new conn !! " + nodeid)
+	if gonode.IsPeer(nodeid) {
+		master.HandleConn(nodeid)
 	}
 }
-func (m *MasterServer) OnMsg(id string, msg []byte) {
-	if gonode.IsPeer(id) {
-		master.HandleMsg(id, msg)
-	} else if gonode.Label(id) == toolkit.LABEL_ROOM {
-		master.HandleServerMsg(id, msg)
+func (m *MasterServer) OnMsg(nodeid string, msg []byte) {
+	if gonode.IsPeer(nodeid) {
+		master.HandleMsg(nodeid, msg)
+	} else if gonode.Label(nodeid) == toolkit.LABEL_ROOM {
+		master.HandleServerMsg(nodeid, msg)
 	}
 }
-func (m *MasterServer) OnClose(id string, reason error) {
-	fmt.Println("conn closed !! " + id + " -- reason:" + reason.Error())
-	if gonode.IsPeer(id) {
-		master.HandleClose(id)
+func (m *MasterServer) OnClose(nodeid string, reason error) {
+	fmt.Println("conn closed !! " + nodeid + " -- reason:" + reason.Error())
+	if gonode.IsPeer(nodeid) {
+		master.HandleClose(nodeid)
 	}
 }
 

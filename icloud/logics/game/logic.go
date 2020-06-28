@@ -16,8 +16,8 @@ import (
 	"github.com/itfantasy/gonode-icloud/icloud/opcode/cacheop"
 	"github.com/itfantasy/gonode-icloud/icloud/opcode/errorcode"
 	"github.com/itfantasy/gonode-icloud/icloud/opcode/evncode"
+	"github.com/itfantasy/gonode-icloud/icloud/opcode/gameparam"
 	"github.com/itfantasy/gonode-icloud/icloud/opcode/paramcode"
-	//	"github.com/itfantasy/gonode-icloud/icloud/opcode/gameparam"
 	//	"github.com/itfantasy/gonode-icloud/icloud/opcode/recvgroup"
 )
 
@@ -103,7 +103,7 @@ func handleCreateGame(peer *gen_room.RoomPeer, opCode byte, datas *gunpeer.PeerD
 
 	gunpeer.SendResponse(peer.PeerId(), errorcode.Ok, opCode, map[byte]interface{}{
 		paramcode.ActorNr:        actor.ActorNr(),
-		paramcode.GameProperties: gunpeer.RoomToHash(room),
+		paramcode.GameProperties: RoomToHash(room),
 		paramcode.Actors:         room.ActorsManager().GetAllActorNrs(),
 	})
 	pubJoinEvent(peer, actor, room)
@@ -125,7 +125,7 @@ func handleJoinGame(peer *gen_room.RoomPeer, opCode byte, datas *gunpeer.PeerDat
 
 	gunpeer.SendResponse(peer.PeerId(), errorcode.Ok, opCode, map[byte]interface{}{
 		paramcode.ActorNr:        actor.ActorNr(),
-		paramcode.GameProperties: gunpeer.RoomToHash(room),
+		paramcode.GameProperties: RoomToHash(room),
 		paramcode.Actors:         room.ActorsManager().GetAllActorNrs(),
 	})
 

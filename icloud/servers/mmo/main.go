@@ -5,8 +5,8 @@ import (
 
 	"github.com/itfantasy/gonode"
 	"github.com/itfantasy/gonode/behaviors/gen_server"
-	"github.com/itfantasy/gonode/utils/ini"
 	"github.com/itfantasy/gonode/utils/io"
+	"github.com/itfantasy/gonode/utils/yaml"
 
 	"github.com/itfantasy/gonode-icloud/icloud/logics/mmo"
 	"github.com/itfantasy/gonode-toolkit/toolkit/gen_mmo"
@@ -17,18 +17,16 @@ type MmoServer struct {
 }
 
 func (m *MmoServer) Setup() *gen_server.NodeInfo {
-	conf, err := ini.Load(io.CurrentDir() + "conf.ini")
+	conf, err := io.LoadFile(io.CurrentDir() + "conf.yaml")
 	if err != nil {
 		fmt.Println(err)
 		return nil
 	}
 	info := new(gen_mmo.MmoServerInfo)
-	info.Id = conf.Get("node", "id")
-	info.Url = conf.Get("node", "url")
-	info.LogLevel = conf.Get("log", "loglevel")
-	info.LogComp = conf.Get("log", "logcomp")
-	info.RegComp = conf.Get("reg", "regcomp")
-
+	if err := yaml.Unmarshal(conf, info); err != nil {
+		fmt.Println(err)
+		return nil
+	}
 	m.handler = new(mmo.MmoHandler)
 	return info.ExpandToNodeInfo()
 }

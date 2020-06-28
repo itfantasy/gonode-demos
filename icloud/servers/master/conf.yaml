@@ -1,0 +1,7 @@
+namespace: icloud
+regdc: etcd://192.168.10.18:2371/gonode
+nodeid: lobby
+endpoints:
+  - tcp://192.168.10.85:5055
+  - kcp://192.168.10.85:5065
+gamedb: mongodb://jgao:123456@192.168.10.18:27017/test

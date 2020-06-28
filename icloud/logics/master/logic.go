@@ -109,7 +109,7 @@ func handleCreateGame(peer *gen_lobby.LobbyPeer, opCode byte, datas *gunpeer.Pee
 	}
 	pub, ok := info.UsrDatas[toolkit.USRDATA_PUBDOMAIN]
 	if !ok {
-		pub = info.Url
+		pub = info.EndPoints[0]
 	}
 	gunpeer.SendResponse(peer.PeerId(), errorcode.Ok, opCode, map[byte]interface{}{
 		paramcode.GameId:  room.RoomId,
@@ -135,7 +135,7 @@ func handleJoinGame(peer *gen_lobby.LobbyPeer, opCode byte, datas *gunpeer.PeerD
 	}
 	pub, ok := gen_lobby.RoomPubDomain(info)
 	if !ok {
-		pub = info.Url
+		pub = info.EndPoints[0]
 	}
 	gunpeer.SendResponse(peer.PeerId(), errorcode.Ok, opCode, map[byte]interface{}{
 		paramcode.GameId:  room.RoomId,
@@ -156,7 +156,7 @@ func handleJoinRandomGame(peer *gen_lobby.LobbyPeer, opCode byte, datas *gunpeer
 	}
 	pub, ok := info.UsrDatas[toolkit.USRDATA_PUBDOMAIN]
 	if !ok {
-		pub = info.Url
+		pub = info.EndPoints[0]
 	}
 	gunpeer.SendResponse(peer.PeerId(), errorcode.Ok, opCode, map[byte]interface{}{
 		paramcode.GameId:  room.RoomId,

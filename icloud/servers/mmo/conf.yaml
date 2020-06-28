@@ -1,0 +1,6 @@
+namespace: icloud
+regdc: etcd://192.168.10.18:2371/gonode
+nodeid: mmo
+endpoints:
+  - kcp://192.168.10.85:5055
+gamedb: mongodb://jgao:123456@localhost:27017/test
